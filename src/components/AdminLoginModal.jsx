@@ -1,10 +1,46 @@
-import React, { useState } from 'react';
-import { X, Lock, Key, ShieldCheck, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Lock, Key, ShieldCheck, AlertCircle, Eye, EyeOff, ShieldAlert, Clock } from 'lucide-react';
 
 export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [attempts, setAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState(0);
+  const [honeypot, setHoneypot] = useState(''); // Anti-bot honeypot field
+
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_DURATION_SEC = 300; // 5 minutos de bloqueo
+
+  useEffect(() => {
+    // Cargar estado de intentos previos
+    const savedAttempts = Number(sessionStorage.getItem('admin_login_attempts') || 0);
+    const savedLockout = Number(sessionStorage.getItem('admin_login_lockout') || 0);
+    const now = Math.floor(Date.now() / 1000);
+
+    setAttempts(savedAttempts);
+
+    if (savedLockout > now) {
+      setLockoutTime(savedLockout - now);
+    }
+  }, [isOpen]);
+
+  // Temporizador decreciente de bloqueo
+  useEffect(() => {
+    if (lockoutTime <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutTime(prev => {
+        if (prev <= 1) {
+          sessionStorage.removeItem('admin_login_lockout');
+          sessionStorage.setItem('admin_login_attempts', '0');
+          setAttempts(0);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutTime]);
 
   if (!isOpen) return null;
 
@@ -12,16 +48,48 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
     e.preventDefault();
     setError('');
 
-    // Clave de administrador predeterminada
+    // Si se completa el honeypot, es un bot
+    if (honeypot.trim() !== '') {
+      setError('Acceso denegado.');
+      return;
+    }
+
+    if (lockoutTime > 0) {
+      setError(`Acceso bloqueado por seguridad. Reintenta en ${lockoutTime} segundos.`);
+      return;
+    }
+
     const ADMIN_PASS = 'admin123';
 
     if (password === ADMIN_PASS) {
-      onLoginSuccess();
+      // Exito: limpiar estado de seguridad
+      sessionStorage.removeItem('admin_login_attempts');
+      sessionStorage.removeItem('admin_login_lockout');
+      setAttempts(0);
       setPassword('');
+      onLoginSuccess();
       onClose();
     } else {
-      setError('Contraseña incorrecta. Inténtalo nuevamente.');
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      sessionStorage.setItem('admin_login_attempts', String(newAttempts));
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        const until = Math.floor(Date.now() / 1000) + LOCKOUT_DURATION_SEC;
+        sessionStorage.setItem('admin_login_lockout', String(until));
+        setLockoutTime(LOCKOUT_DURATION_SEC);
+        setError(`Demasiados intentos fallidos. Panel bloqueado por 5 minutos por seguridad.`);
+      } else {
+        const remaining = MAX_ATTEMPTS - newAttempts;
+        setError(`Contraseña incorrecta. Te quedan ${remaining} intento(s) antes del bloqueo.`);
+      }
     }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   return (
@@ -55,11 +123,14 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
       >
         {/* Header con estilo elegante */}
         <div style={{
-          background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
+          background: lockoutTime > 0 
+            ? 'linear-gradient(135deg, #991B1B 0%, #DC2626 100%)'
+            : 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
           padding: '2rem 1.5rem',
           color: '#ffffff',
           textAlign: 'center',
-          position: 'relative'
+          position: 'relative',
+          transition: 'background 0.3s'
         }}>
           <button 
             onClick={onClose}
@@ -93,20 +164,49 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
             justifyContent: 'center',
             margin: '0 auto 1rem auto'
           }}>
-            <ShieldCheck size={30} color="#ffffff" />
+            {lockoutTime > 0 ? <ShieldAlert size={30} color="#ffffff" /> : <ShieldCheck size={30} color="#ffffff" />}
           </div>
 
           <h3 style={{ fontSize: '1.35rem', fontWeight: '800', marginBottom: '0.3rem' }}>
             Acceso Administrador
           </h3>
           <p style={{ fontSize: '0.85rem', opacity: 0.9 }}>
-            Ingresa tu clave de acceso para gestionar la tienda
+            {lockoutTime > 0 ? 'Sistema bloqueado temporalmente' : 'Ingresa tu clave de acceso con seguridad'}
           </p>
         </div>
 
         {/* Formulario */}
         <form onSubmit={handleSubmit} style={{ padding: '1.75rem 1.5rem' }}>
-          {error && (
+          {/* Honeypot invisible para trampa anti-bot */}
+          <input 
+            type="text" 
+            name="username_hp"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+            style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+            tabIndex={-1}
+            autocomplete="off"
+          />
+
+          {lockoutTime > 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '1.5rem',
+              background: '#FEE2E2',
+              border: '1px solid #FCA5A5',
+              borderRadius: 'var(--radius-md)',
+              color: '#991B1B',
+              marginBottom: '1.25rem'
+            }}>
+              <Clock size={32} style={{ margin: '0 auto 0.5rem' }} />
+              <div style={{ fontWeight: '800', fontSize: '1.2rem', marginBottom: '0.3rem' }}>
+                {formatTime(lockoutTime)}
+              </div>
+              <p style={{ fontSize: '0.85rem' }}>
+                Demasiados intentos fallidos. Espera a que finalice el tiempo de seguridad para intentar nuevamente.
+              </p>
+            </div>
+          ) : error && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -141,6 +241,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
                 onChange={(e) => setPassword(e.target.value)}
                 autoFocus
                 required
+                disabled={lockoutTime > 0}
                 style={{
                   width: '100%',
                   padding: '0.75rem 2.8rem 0.75rem 2.8rem',
@@ -148,12 +249,14 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
                   border: '1px solid var(--border-light)',
                   fontSize: '0.95rem',
                   outline: 'none',
-                  boxShadow: 'var(--shadow-sm)'
+                  boxShadow: 'var(--shadow-sm)',
+                  opacity: lockoutTime > 0 ? 0.6 : 1
                 }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={lockoutTime > 0}
                 style={{
                   position: 'absolute',
                   right: '1rem',
@@ -184,8 +287,9 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
             </button>
             <button 
               type="submit"
+              disabled={lockoutTime > 0}
               className="btn btn-primary"
-              style={{ flex: 1, padding: '0.75rem' }}
+              style={{ flex: 1, padding: '0.75rem', opacity: lockoutTime > 0 ? 0.6 : 1 }}
             >
               <Key size={16} /> Ingresar
             </button>
@@ -195,3 +299,4 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
     </div>
   );
 }
+

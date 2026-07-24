@@ -1,59 +1,100 @@
 import React, { useState } from 'react';
-import { X, ShoppingBag, Plus, Minus, Trash2, Send, CheckCircle2 } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2, Send, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
 
 export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onClearCart }) {
   const [customerName, setCustomerName] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(null);
+  const [securityError, setSecurityError] = useState('');
 
   if (!isOpen) return null;
 
   const totalAmount = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
+  // Sanitización de entradas contra inyecciones XSS / scripts
+  const sanitizeText = (str) => {
+    if (!str) return '';
+    return str.replace(/</g, "&lt;").replace(/>/g, "&gt;").trim();
+  };
+
   const handleCheckoutWhatsApp = async (e) => {
     e.preventDefault();
+    setSecurityError('');
+
     if (cartItems.length === 0) return;
+
+    // 1. Honeypot check (si un bot completó el campo oculto)
+    if (honeypot.trim() !== '') {
+      console.warn('Bot de spam detectado por Honeypot.');
+      setSecurityError('Error al procesar la solicitud.');
+      return;
+    }
+
+    // 2. Anti-Spam / Rate Limiting (Máximo 3 pedidos cada 5 minutos por sesión)
+    const now = Math.floor(Date.now() / 1000);
+    const recentOrders = JSON.parse(sessionStorage.getItem('recent_orders_timestamps') || '[]');
+    const validOrders = recentOrders.filter(t => now - t < 300); // 300 segundos = 5 min
+
+    if (validOrders.length >= 3) {
+      setSecurityError('Has realizado varios pedidos recientemente. Por favor espera unos minutos antes de realizar otro.');
+      return;
+    }
+
+    // Sanitizar datos
+    const cleanName = sanitizeText(customerName) || 'Cliente bitessaludable';
+    const cleanAddress = sanitizeText(address);
+    const cleanNotes = sanitizeText(notes);
 
     setIsSubmitting(true);
 
     const orderData = {
-      customerName: customerName || 'Cliente bitessaludable',
-      address,
-      notes,
+      customerName: cleanName,
+      address: cleanAddress,
+      notes: cleanNotes,
       items: cartItems,
       totalAmount,
       status: 'Pendiente'
     };
 
-    // Registrar en Stitch Database
-    const res = await stitchService.submitOrder(orderData);
+    try {
+      // Registrar timestamp para rate limiting
+      validOrders.push(now);
+      sessionStorage.setItem('recent_orders_timestamps', JSON.stringify(validOrders));
 
-    // Formatear mensaje para WhatsApp
-    let message = `*NUEVO PEDIDO - bitessaludable*\n`;
-    message += `📋 *Orden ID:* ${res.orderId}\n`;
-    message += `👤 *Cliente:* ${customerName || 'No especificado'}\n`;
-    if (address) message += `📍 *Dirección:* ${address}\n`;
-    if (notes) message += `📝 *Notas:* ${notes}\n`;
-    message += `\n*Detalle del Pedido:*\n`;
+      // Registrar en Stitch Database
+      const res = await stitchService.submitOrder(orderData);
 
-    cartItems.forEach(item => {
-      message += `• ${item.quantity}x ${item.title} ($${(item.price * item.quantity).toLocaleString('es-AR')})\n`;
-    });
+      // Formatear mensaje para WhatsApp
+      let message = `*NUEVO PEDIDO - bitessaludable*\n`;
+      message += `📋 *Orden ID:* ${res.orderId}\n`;
+      message += `👤 *Cliente:* ${cleanName}\n`;
+      if (cleanAddress) message += `📍 *Dirección:* ${cleanAddress}\n`;
+      if (cleanNotes) message += `📝 *Notas:* ${cleanNotes}\n`;
+      message += `\n*Detalle del Pedido:*\n`;
 
-    message += `\n*TOTAL:* $${totalAmount.toLocaleString('es-AR')} ARS\n`;
-    message += `\n¡Gracias por elegir bitessaludable! 🌿`;
+      cartItems.forEach(item => {
+        message += `• ${item.quantity}x ${item.title} ($${(item.price * item.quantity).toLocaleString('es-AR')})\n`;
+      });
 
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/5491100000000?text=${encodedMessage}`;
+      message += `\n*TOTAL:* $${totalAmount.toLocaleString('es-AR')} ARS\n`;
+      message += `\n¡Gracias por elegir bitessaludable! 🌿`;
 
-    setIsSubmitting(false);
-    setOrderComplete(res.orderId);
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/5491100000000?text=${encodedMessage}`;
 
-    // Abrir WhatsApp en una pestaña nueva
-    window.open(whatsappUrl, '_blank');
+      setIsSubmitting(false);
+      setOrderComplete(res.orderId);
+
+      // Abrir WhatsApp en una pestaña nueva
+      window.open(whatsappUrl, '_blank');
+    } catch (err) {
+      setIsSubmitting(false);
+      setSecurityError('Ocurrió un error al procesar el pedido. Intenta nuevamente.');
+    }
   };
 
   return (
@@ -203,11 +244,41 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
                   boxShadow: '0 -4px 20px rgba(0,0,0,0.05)'
                 }}
               >
+                {securityError && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    background: '#FEE2E2',
+                    border: '1px solid #FCA5A5',
+                    color: '#991B1B',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.85rem',
+                    marginBottom: '1rem'
+                  }}>
+                    <AlertTriangle size={16} />
+                    <span>{securityError}</span>
+                  </div>
+                )}
+
                 <form onSubmit={handleCheckoutWhatsApp} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  {/* Honeypot invisible para trampa anti-bot */}
+                  <input 
+                    type="text" 
+                    name="website_url_hp"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+                    tabIndex={-1}
+                    autocomplete="off"
+                  />
+
                   <input 
                     type="text"
                     placeholder="Tu nombre completo *"
                     required
+                    maxLength={60}
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     style={{ padding: '0.65rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '0.9rem', outline: 'none' }}
@@ -215,6 +286,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
                   <input 
                     type="text"
                     placeholder="Dirección de entrega (Opcional)"
+                    maxLength={100}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     style={{ padding: '0.65rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '0.9rem', outline: 'none' }}
