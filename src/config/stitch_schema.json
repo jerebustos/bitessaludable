@@ -1,0 +1,54 @@
+{
+  "app_id": "bitessaludable-stitch-app",
+  "name": "bitessaludable_backend",
+  "version": 1,
+  "collections": {
+    "products": {
+      "title": "products",
+      "bsonType": "object",
+      "required": ["_id", "title", "category", "price", "image", "description", "calories", "protein"],
+      "properties": {
+        "_id": { "bsonType": "objectId" },
+        "title": { "bsonType": "string" },
+        "category": { "bsonType": "string" },
+        "price": { "bsonType": "number" },
+        "image": { "bsonType": "string" },
+        "description": { "bsonType": "string" },
+        "ingredients": { "bsonType": "array", "items": { "bsonType": "string" } },
+        "calories": { "bsonType": "number" },
+        "protein": { "bsonType": "string" },
+        "carbs": { "bsonType": "string" },
+        "fat": { "bsonType": "string" },
+        "isStarProduct": { "bsonType": "bool" },
+        "inStock": { "bsonType": "bool" }
+      }
+    },
+    "founders": {
+      "title": "founders",
+      "bsonType": "object",
+      "required": ["_id", "name", "role", "bio", "photo"],
+      "properties": {
+        "_id": { "bsonType": "objectId" },
+        "name": { "bsonType": "string" },
+        "role": { "bsonType": "string" },
+        "bio": { "bsonType": "string" },
+        "quote": { "bsonType": "string" },
+        "photo": { "bsonType": "string" }
+      }
+    },
+    "orders": {
+      "title": "orders",
+      "bsonType": "object",
+      "required": ["_id", "createdAt", "customerName", "customerPhone", "items", "totalAmount", "status"],
+      "properties": {
+        "_id": { "bsonType": "objectId" },
+        "createdAt": { "bsonType": "date" },
+        "customerName": { "bsonType": "string" },
+        "customerPhone": { "bsonType": "string" },
+        "items": { "bsonType": "array" },
+        "totalAmount": { "bsonType": "number" },
+        "status": { "bsonType": "string" }
+      }
+    }
+  }
+}
