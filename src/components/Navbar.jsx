@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Menu, X, Database, Sparkles, Leaf } from 'lucide-react';
+import { ShoppingBag, Menu, X, Database, Sparkles, Leaf, Shield, Lock, Settings } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
 
-export default function Navbar({ cartCount, onOpenCart }) {
+export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenAdminLogin, onOpenAdminPanel }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [stitchStatus, setStitchStatus] = useState({ connected: true, mode: 'Stitch Sync' });
@@ -73,30 +73,55 @@ export default function Navbar({ cartCount, onOpenCart }) {
           <a href="#creadoras" className="nav-link">Las Creadoras</a>
         </nav>
 
-        {/* Action Controls (Stitch Badge + Cart Button + Mobile Toggle) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {/* Stitch Integration Status Badge */}
-          <div 
-            title="Stitch Backend Synchronized"
-            style={{
-              display: 'none',
-              smDisplay: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: 'var(--radius-full)',
-              background: 'rgba(30, 130, 134, 0.08)',
-              border: '1px solid rgba(30, 130, 134, 0.2)',
-              fontSize: '0.75rem',
-              color: 'var(--color-primary-dark)',
-              fontWeight: '600'
-            }}
-            className="stitch-badge-nav"
-          >
-            <Database size={13} color="var(--color-primary)" />
-            <span>Stitch Connected</span>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
-          </div>
+        {/* Action Controls (Admin Button + Cart Button + Mobile Toggle) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Admin Access Button */}
+          {isAdminLoggedIn ? (
+            <button
+              onClick={onOpenAdminPanel}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.55rem 0.95rem',
+                borderRadius: 'var(--radius-full)',
+                background: 'linear-gradient(135deg, #065F46 0%, #10B981 100%)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: '700',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+              title="Abrir Panel de Administración"
+            >
+              <Shield size={16} />
+              <span>Panel Admin</span>
+            </button>
+          ) : (
+            <button
+              onClick={onOpenAdminLogin}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.55rem 0.85rem',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(30, 41, 59, 0.06)',
+                color: 'var(--text-dark)',
+                border: '1px solid var(--border-light)',
+                fontWeight: '600',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              title="Ingresar como Administrador"
+            >
+              <Lock size={15} color="var(--color-primary)" />
+              <span>Admin</span>
+            </button>
+          )}
 
           {/* Cart Button */}
           <button 
@@ -171,6 +196,47 @@ export default function Navbar({ cartCount, onOpenCart }) {
           <a href="#productos" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: '600' }}>Productos</a>
           <a href="#historia" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: '600' }}>Nuestra Historia</a>
           <a href="#creadoras" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '1.1rem', fontWeight: '600' }}>Las Creadoras</a>
+          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
+            {isAdminLoggedIn ? (
+              <button
+                onClick={() => { setMobileMenuOpen(false); onOpenAdminPanel(); }}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: '#10B981',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <Shield size={18} /> Panel de Administración
+              </button>
+            ) : (
+              <button
+                onClick={() => { setMobileMenuOpen(false); onOpenAdminLogin(); }}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: '#f3f4f6',
+                  color: 'var(--text-dark)',
+                  border: '1px solid var(--border-light)',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <Lock size={18} /> Ingresar como Administrador
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -193,3 +259,4 @@ export default function Navbar({ cartCount, onOpenCart }) {
     </header>
   );
 }
+

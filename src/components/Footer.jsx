@@ -31,24 +31,26 @@ export default function Footer() {
               Comida real, fresca y deliciosa elaborada con amor para nutrir tu cuerpo todos los días. Viandas, bowls y snacks orgánicos sin conservantes.
             </p>
 
-            <div style={{ display: 'flex', gap: '0.8rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
               <a 
-                href="https://instagram.com" 
+                href="https://www.instagram.com/bitessaludable/" 
                 target="_blank" 
                 rel="noreferrer"
                 style={{
-                  width: '38px',
                   height: '38px',
-                  borderRadius: '50%',
+                  padding: '0 1rem',
+                  borderRadius: 'var(--radius-full)',
                   background: 'rgba(255,255,255,0.1)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  gap: '0.5rem',
                   color: 'var(--color-peach)',
+                  fontWeight: '600',
+                  fontSize: '0.85rem',
                   transition: 'background 0.2s'
                 }}
               >
-                <Instagram size={18} />
+                <Instagram size={18} /> @bitessaludable
               </a>
             </div>
           </div>
@@ -73,13 +75,13 @@ export default function Footer() {
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.9rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <Phone size={16} color="var(--color-primary-light)" /> +54 9 11 0000-0000
+                <Instagram size={16} color="var(--color-primary-light)" />
+                <a href="https://www.instagram.com/bitessaludable/" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
+                  @bitessaludable
+                </a>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <Mail size={16} color="var(--color-primary-light)" /> hola@bitessaludable.com
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <MapPin size={16} color="var(--color-primary-light)" /> Buenos Aires, Argentina
+                <MapPin size={16} color="var(--color-primary-light)" /> Santa Rosa, La Pampa, Argentina
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <Clock size={16} color="var(--color-primary-light)" /> Lunes a Sábado: 8:00 hs - 20:00 hs

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Flame, Dumbbell, Eye, Plus, Star, Sparkles, Filter } from 'lucide-react';
+import { Search, Flame, Dumbbell, Eye, Plus, Star, Sparkles, Edit3, ShieldAlert } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
 import ProductModal from './ProductModal';
 
-export default function ProductGallery({ onAddToCart }) {
+export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdminPanel }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('todos');
@@ -18,6 +18,13 @@ export default function ProductGallery({ onAddToCart }) {
       setLoading(false);
     }
     loadProducts();
+
+    // Suscribirse a cambios en productos (agregados o modificación de precios)
+    const unsubscribe = stitchService.subscribe((updatedProducts) => {
+      setProducts(updatedProducts);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const categories = [
@@ -49,6 +56,31 @@ export default function ProductGallery({ onAddToCart }) {
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
             Selección artesanal preparada diariamente con ingredientes frescos, balance macronutricional optimizado y cero conservantes artificiales.
           </p>
+          
+          {isAdminLoggedIn && (
+            <div style={{
+              marginTop: '1.25rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.6rem 1.2rem',
+              background: '#D1FAE5',
+              border: '1px solid #6EE7B7',
+              color: '#065F46',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.875rem',
+              fontWeight: '700'
+            }}>
+              <span>Modo Administrador Activo</span>
+              <button 
+                onClick={onOpenAdminPanel}
+                className="btn btn-primary"
+                style={{ padding: '0.35rem 0.8rem', fontSize: '0.75rem' }}
+              >
+                <Edit3 size={14} /> Abrir Panel de Precios & Productos
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Filter Bar & Search Input */}
@@ -131,7 +163,8 @@ export default function ProductGallery({ onAddToCart }) {
                   flexDirection: 'column',
                   height: '100%',
                   overflow: 'hidden',
-                  position: 'relative'
+                  position: 'relative',
+                  opacity: product.inStock === false ? 0.7 : 1
                 }}
               >
                 {/* Product Image Container */}
@@ -167,6 +200,24 @@ export default function ProductGallery({ onAddToCart }) {
                       boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                     }}>
                       <Star size={12} fill="#8C4318" /> Estrella
+                    </div>
+                  )}
+
+                  {/* Stock Paused Overlay Badge */}
+                  {product.inStock === false && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '0.85rem',
+                      right: '0.85rem',
+                      background: 'rgba(239, 68, 68, 0.95)',
+                      color: '#ffffff',
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                    }}>
+                      Agotado
                     </div>
                   )}
 
@@ -210,8 +261,23 @@ export default function ProductGallery({ onAddToCart }) {
                   <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontWeight: '600' }}>PRECIO</div>
-                      <div style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--color-primary-dark)' }}>
+                      <div style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         ${product.price.toLocaleString('es-AR')} ARS
+                        {isAdminLoggedIn && (
+                          <button
+                            onClick={onOpenAdminPanel}
+                            title="Editar precio en panel de administración"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--color-primary)',
+                              cursor: 'pointer',
+                              padding: '2px'
+                            }}
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -227,10 +293,16 @@ export default function ProductGallery({ onAddToCart }) {
                       
                       <button 
                         onClick={() => onAddToCart(product)}
+                        disabled={product.inStock === false}
                         className="btn btn-primary"
-                        style={{ padding: '0.6rem 1.1rem', fontSize: '0.85rem' }}
+                        style={{
+                          padding: '0.6rem 1.1rem',
+                          fontSize: '0.85rem',
+                          opacity: product.inStock === false ? 0.6 : 1,
+                          cursor: product.inStock === false ? 'not-allowed' : 'pointer'
+                        }}
                       >
-                        <Plus size={16} /> Agregar
+                        <Plus size={16} /> {product.inStock === false ? 'Sin Stock' : 'Agregar'}
                       </button>
                     </div>
                   </div>
@@ -252,3 +324,4 @@ export default function ProductGallery({ onAddToCart }) {
     </section>
   );
 }
+

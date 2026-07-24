@@ -82,39 +82,130 @@ const INITIAL_PRODUCTS = [
 const INITIAL_FOUNDERS = [
   {
     id: 'founder-1',
-    name: 'Sofía & Valentina',
-    role: 'Nutricionistas & Fundadoras de bitessaludable',
-    bio: 'Apasionadas por la nutrición consciente y la gastronomía saludable. Creamos bitessaludable con el sueño de ofrecer platos deliciosos, equilibrados y llenos de color que cuiden tu cuerpo sin sacrificar el sabor.',
+    name: 'Yesi & Maru',
+    role: 'Fundadoras & Creadoras de bitessaludable',
+    bio: 'Apasionadas por la alimentación consciente y la vida saludable en Santa Rosa, La Pampa. Creamos bitessaludable con el sueño de ofrecer platos deliciosos, equilibrados y llenos de color que cuiden tu cuerpo sin sacrificar el sabor.',
     quote: 'Comer sano no tiene por qué ser aburrido. Cada receta que preparamos tiene el equilibrio perfecto entre nutrición y placer.',
     photo: '/assets/founders_photo.jpg'
   }
 ];
 
 /**
- * Servicio Stitch para consulta y sincronización de datos
+ * Servicio Stitch para consulta y sincronización de datos con persistencia en localStorage
  */
 class StitchService {
   constructor() {
     this.isConnected = true;
     this.useMock = STITCH_CONFIG.offlineMockMode;
     this.listeners = [];
+    this.STORAGE_KEY = 'bitessaludable_products';
+  }
+
+  _getLocalProducts() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Error al leer de localStorage:', e);
+    }
+    // Si no hay almacenados, guardamos y retornamos los productos iniciales
+    this._saveLocalProducts(INITIAL_PRODUCTS);
+    return INITIAL_PRODUCTS;
+  }
+
+  _saveLocalProducts(products) {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(products));
+      this.notifyListeners(products);
+    } catch (e) {
+      console.error('Error al guardar en localStorage:', e);
+    }
+  }
+
+  subscribe(listener) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  }
+
+  notifyListeners(products) {
+    this.listeners.forEach(listener => listener(products));
   }
 
   // Obtener todos los productos
   async getProducts() {
     try {
-      // Si existiera conexión activa con Stitch SDK:
-      // const client = Stitch.defaultAppClient;
-      // const db = client.getServiceClient(RemoteMongoClient.factory, 'mongodb-atlas').db('bitessaludable_db');
-      // return await db.collection('products').find({}).toArray();
-      
+      const products = this._getLocalProducts();
       return new Promise((resolve) => {
-        setTimeout(() => resolve(INITIAL_PRODUCTS), 150);
+        setTimeout(() => resolve(products), 100);
       });
     } catch (error) {
       console.warn('Stitch fetch error, usando fallback local:', error);
       return INITIAL_PRODUCTS;
     }
+  }
+
+  // Agregar nuevo producto
+  async addProduct(newProductData) {
+    const currentProducts = this._getLocalProducts();
+    const newProduct = {
+      id: 'prod-' + Date.now(),
+      title: newProductData.title || 'Nuevo Producto',
+      category: newProductData.category || 'bowls',
+      price: Number(newProductData.price) || 0,
+      image: newProductData.image || '/assets/bowl_protein.jpg',
+      description: newProductData.description || '',
+      ingredients: Array.isArray(newProductData.ingredients)
+        ? newProductData.ingredients
+        : (newProductData.ingredients || '').split(',').map(i => i.trim()).filter(Boolean),
+      calories: Number(newProductData.calories) || 0,
+      protein: typeof newProductData.protein === 'number' ? `${newProductData.protein}g` : (newProductData.protein || '0g'),
+      carbs: typeof newProductData.carbs === 'number' ? `${newProductData.carbs}g` : (newProductData.carbs || '0g'),
+      fat: typeof newProductData.fat === 'number' ? `${newProductData.fat}g` : (newProductData.fat || '0g'),
+      isStarProduct: Boolean(newProductData.isStarProduct),
+      inStock: newProductData.inStock !== undefined ? Boolean(newProductData.inStock) : true
+    };
+
+    const updated = [newProduct, ...currentProducts];
+    this._saveLocalProducts(updated);
+    return newProduct;
+  }
+
+  // Actualizar solo precio de un producto
+  async updateProductPrice(productId, newPrice) {
+    const currentProducts = this._getLocalProducts();
+    const updated = currentProducts.map(prod => {
+      if (prod.id === productId) {
+        return { ...prod, price: Number(newPrice) };
+      }
+      return prod;
+    });
+    this._saveLocalProducts(updated);
+    return updated.find(p => p.id === productId);
+  }
+
+  // Actualizar datos de un producto existente
+  async updateProduct(productId, updatedFields) {
+    const currentProducts = this._getLocalProducts();
+    const updated = currentProducts.map(prod => {
+      if (prod.id === productId) {
+        return { ...prod, ...updatedFields };
+      }
+      return prod;
+    });
+    this._saveLocalProducts(updated);
+    return updated.find(p => p.id === productId);
+  }
+
+  // Eliminar producto
+  async deleteProduct(productId) {
+    const currentProducts = this._getLocalProducts();
+    const updated = currentProducts.filter(prod => prod.id !== productId);
+    this._saveLocalProducts(updated);
+    return true;
   }
 
   // Obtener información de las fundadoras
@@ -149,3 +240,4 @@ class StitchService {
 }
 
 export const stitchService = new StitchService();
+

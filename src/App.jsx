@@ -1,16 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ProductGallery from './components/ProductGallery';
 import AboutUs from './components/AboutUs';
 import Founders from './components/Founders';
-import StitchStatus from './components/StitchStatus';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
+import AdminLoginModal from './components/AdminLoginModal';
+import AdminPanelModal from './components/AdminPanelModal';
 
 export default function App() {
   const [cartItems, setCartItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // Estados del Panel de Administración
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+
+  useEffect(() => {
+    // Comprobar si la sesión de admin estaba iniciada en la sesión actual
+    const session = sessionStorage.getItem('bitessaludable_admin_session');
+    if (session === 'true') {
+      setIsAdminLoggedIn(true);
+    }
+  }, []);
+
+  const handleAdminLoginSuccess = () => {
+    setIsAdminLoggedIn(true);
+    sessionStorage.setItem('bitessaludable_admin_session', 'true');
+    setIsAdminPanelOpen(true);
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminLoggedIn(false);
+    sessionStorage.removeItem('bitessaludable_admin_session');
+    setIsAdminPanelOpen(false);
+  };
 
   const handleAddToCart = (product) => {
     setCartItems(prev => {
@@ -50,14 +76,20 @@ export default function App() {
       <Navbar 
         cartCount={cartCount} 
         onOpenCart={() => setIsCartOpen(true)} 
+        isAdminLoggedIn={isAdminLoggedIn}
+        onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
+        onOpenAdminPanel={() => setIsAdminPanelOpen(true)}
       />
       
       <main style={{ flex: 1 }}>
         <Hero />
-        <ProductGallery onAddToCart={handleAddToCart} />
+        <ProductGallery 
+          onAddToCart={handleAddToCart} 
+          isAdminLoggedIn={isAdminLoggedIn}
+          onOpenAdminPanel={() => setIsAdminPanelOpen(true)}
+        />
         <AboutUs />
         <Founders />
-        <StitchStatus />
       </main>
 
       <Footer />
@@ -70,6 +102,21 @@ export default function App() {
         onRemoveItem={handleRemoveItem}
         onClearCart={handleClearCart}
       />
+
+      {/* Modal Login Administrador */}
+      <AdminLoginModal 
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        onLoginSuccess={handleAdminLoginSuccess}
+      />
+
+      {/* Modal Panel de Administración */}
+      <AdminPanelModal 
+        isOpen={isAdminPanelOpen}
+        onClose={() => setIsAdminPanelOpen(false)}
+        onLogout={handleAdminLogout}
+      />
     </div>
   );
 }
+
