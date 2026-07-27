@@ -14,7 +14,7 @@ export default function ProductModal({ product, onClose, onAddToCart, isAdminLog
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1.5rem',
-        background: 'rgba(28, 40, 38, 0.7)',
+        background: 'rgba(28, 40, 38, 0.75)',
         backdropFilter: 'blur(8px)',
         animation: 'fadeIn 0.25s ease'
       }}
@@ -25,9 +25,12 @@ export default function ProductModal({ product, onClose, onAddToCart, isAdminLog
           position: 'relative',
           width: '100%',
           maxWidth: '650px',
+          maxHeight: '90vh',
           background: '#ffffff',
           borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
           boxShadow: 'var(--shadow-lg)',
           border: '1px solid var(--border-light)'
         }}
@@ -41,50 +44,90 @@ export default function ProductModal({ product, onClose, onAddToCart, isAdminLog
             position: 'absolute',
             top: '1rem',
             right: '1rem',
-            zIndex: 10,
+            zIndex: 20,
             width: '36px',
             height: '36px',
             borderRadius: '50%',
-            background: 'rgba(0, 0, 0, 0.4)',
+            background: 'rgba(0, 0, 0, 0.5)',
             color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'background 0.2s',
             border: 'none',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
           }}
         >
           <X size={20} />
         </button>
 
-        {/* Modal Image */}
-        <div style={{ position: 'relative', height: '260px', width: '100%', overflow: 'hidden' }}>
+        {/* Modal Image Header (Muestra la foto 100% COMPLETA sin recortar) */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          height: '320px',
+          background: 'linear-gradient(135deg, #1C2826 0%, #2A3B38 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          flexShrink: 0
+        }}>
+          {/* Imagen de fondo difuminada suave */}
+          <img 
+            src={product.image} 
+            alt=""
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              filter: 'blur(20px) opacity(0.35)',
+              transform: 'scale(1.1)'
+            }}
+          />
+
+          {/* Imagen principal 100% visible sin recortes */}
           <img 
             src={product.image} 
             alt={product.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{
+              position: 'relative',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              zIndex: 2,
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+            }}
           />
+
+          {/* Badges en la imagen */}
           <div style={{
             position: 'absolute',
             bottom: '1rem',
             left: '1.5rem',
             display: 'flex',
-            gap: '0.5rem'
+            gap: '0.5rem',
+            zIndex: 10
           }}>
-            <span className="badge badge-peach" style={{ fontWeight: '700' }}>
+            <span className="badge badge-peach" style={{ fontWeight: '700', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
               ${product.price.toLocaleString('es-AR')} ARS
             </span>
             {product.isStarProduct && (
-              <span className="badge badge-primary">
+              <span className="badge badge-primary" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.3)', background: 'rgba(255,255,255,0.92)' }}>
                 Producto Estrella
               </span>
             )}
           </div>
         </div>
 
-        {/* Modal Content */}
-        <div style={{ padding: '1.75rem' }}>
+        {/* Modal Content Scrollable */}
+        <div style={{ padding: '1.75rem', overflowY: 'auto', flex: 1 }}>
           <h3 style={{ fontSize: '1.6rem', marginBottom: '0.5rem', color: 'var(--text-dark)' }}>
             {product.title}
           </h3>
