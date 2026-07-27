@@ -90,7 +90,7 @@ export default function Hero() {
             textShadow: '0 2px 10px rgba(0,0,0,0.4)'
           }}
         >
-          En <strong style={{ color: 'var(--color-peach)', fontWeight: '700' }}>bitessaludable</strong> elaboramos bowls nutritivos, meal preps equilibrados y snacks artesanales sin conservantes, hechos con ingredientes frescos de la más alta calidad.
+          En <strong style={{ color: 'var(--color-peach)', fontWeight: '700' }}>bitessaludable</strong> elaboramos productos nutritivos, alimentos equilibrados y snacks artesanales sin conservantes, hechos con ingredientes frescos de la más alta calidad.
         </p>
 
         {/* CTA Buttons */}

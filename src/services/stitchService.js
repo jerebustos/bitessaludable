@@ -5,7 +5,7 @@ const INITIAL_PRODUCTS = [
   {
     id: 'prod-1',
     title: 'Bowl Proteico Power',
-    category: 'bowls',
+    category: 'boxgourmet',
     price: 4800,
     image: '/assets/bowl_protein.jpg',
     description: 'Pechuga de pollo grillada a las finas hierbas, quinoa real, palta cremosa, brocoli al vapor, tomates cherry y huevo pochado con semillas de sésamo.',
@@ -20,7 +20,7 @@ const INITIAL_PRODUCTS = [
   {
     id: 'prod-2',
     title: 'Poke Bowl Salmón & Mango',
-    category: 'bowls',
+    category: 'boxgourmet',
     price: 5400,
     image: '/assets/bowl_salmon.jpg',
     description: 'Cubos de salmón rosado fresco, edamame, mango jugoso en cubos, cintas de pepino, repollo morado y palta sobre base de arroz integral marinada.',
@@ -35,7 +35,7 @@ const INITIAL_PRODUCTS = [
   {
     id: 'prod-3',
     title: 'Pack Meal Prep Semanal (5 Días)',
-    category: 'mealprep',
+    category: 'panificados',
     price: 21500,
     image: '/assets/meal_prep_pack.jpg',
     description: 'Set de 5 viandas saludables listas para calentar. Elaboradas diariamente con proteína magra, vegetales orgánicos y carbohidratos complejos.',
@@ -49,16 +49,16 @@ const INITIAL_PRODUCTS = [
   },
   {
     id: 'prod-4',
-    title: 'Jugo Verde Detox Prensado en Frío',
-    category: 'jugos',
-    price: 2200,
+    title: 'Tarta Fit & Masa Artesanal',
+    category: 'pasteleria',
+    price: 3200,
     image: '/assets/green_juice.jpg',
-    description: 'Jugo 100% natural sin agua ni azúcar añadida. Prensado en frío con espinaca orgánica, pepino, manzana verde, apio, limón y toque de menta.',
-    ingredients: ['Espinaca orgánica', 'Pepino fresco', 'Manzana verde', 'Apio', 'Limón', 'Menta fresca'],
-    calories: 110,
-    protein: '3g',
-    carbs: '22g',
-    fat: '0g',
+    description: 'Deliciosa opción dulce o salada con ingredientes seleccionados de primera calidad, harinas integrales y bajo en azúcar.',
+    ingredients: ['Harina integral', 'Huevos de campo', 'Frutos secos', 'Esencia vegetal', 'Stevia'],
+    calories: 220,
+    protein: '12g',
+    carbs: '28g',
+    fat: '6g',
     isStarProduct: true,
     inStock: true
   },
@@ -105,7 +105,20 @@ class StitchService {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Migración de categorías viejas a las nuevas opciones
+        const categoryMap = {
+          bowls: 'boxgourmet',
+          mealprep: 'panificados',
+          jugos: 'pasteleria'
+        };
+        const migrated = parsed.map(p => {
+          if (categoryMap[p.category]) {
+            return { ...p, category: categoryMap[p.category] };
+          }
+          return p;
+        });
+        return migrated;
       }
     } catch (e) {
       console.warn('Error al leer de localStorage:', e);
@@ -154,7 +167,7 @@ class StitchService {
     const newProduct = {
       id: 'prod-' + Date.now(),
       title: newProductData.title || 'Nuevo Producto',
-      category: newProductData.category || 'bowls',
+      category: newProductData.category || 'pasteleria',
       price: Number(newProductData.price) || 0,
       image: newProductData.image || '/assets/bowl_protein.jpg',
       description: newProductData.description || '',
@@ -240,4 +253,3 @@ class StitchService {
 }
 
 export const stitchService = new StitchService();
-

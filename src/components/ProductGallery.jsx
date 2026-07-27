@@ -29,10 +29,11 @@ export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdm
 
   const categories = [
     { id: 'todos', name: 'Todos los Platos' },
-    { id: 'bowls', name: 'Bowls Nutritivos' },
-    { id: 'mealprep', name: 'Meal Prep Semanal' },
-    { id: 'jugos', name: 'Jugos Detox' },
-    { id: 'snacks', name: 'Snacks & Dulces Fit' }
+    { id: 'pasteleria', name: 'Pastelería' },
+    { id: 'panificados', name: 'Panificados' },
+    { id: 'pastas', name: 'Pastas' },
+    { id: 'snacks', name: 'Snacks & Dulces Fit' },
+    { id: 'boxgourmet', name: 'Box Gourmet' }
   ];
 
   const filteredProducts = products.filter(product => {

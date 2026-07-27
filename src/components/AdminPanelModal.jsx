@@ -11,7 +11,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
   // Form state for creating a new product
   const [newProduct, setNewProduct] = useState({
     title: '',
-    category: 'bowls',
+    category: 'pasteleria',
     price: '',
     image: '/assets/bowl_protein.jpg',
     description: '',
@@ -80,7 +80,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
     setEditingProduct({
       id: prod.id,
       title: prod.title || '',
-      category: prod.category || 'bowls',
+      category: prod.category || 'pasteleria',
       price: prod.price !== undefined ? prod.price : '',
       image: prod.image || '/assets/bowl_protein.jpg',
       description: prod.description || '',
@@ -118,7 +118,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
       // Reset form
       setNewProduct({
         title: '',
-        category: 'bowls',
+        category: 'pasteleria',
         price: '',
         image: '/assets/bowl_protein.jpg',
         description: '',
@@ -458,7 +458,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
                             {product.title}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                            <span style={{ textTransform: 'capitalize', fontWeight: '600' }}>Cat: {product.category}</span>
+                            <span style={{ textTransform: 'capitalize', fontWeight: '600' }}>Cat: {{ pasteleria: 'Pastelería', panificados: 'Panificados', pastas: 'Pastas', snacks: 'Snacks & Dulces Fit', boxgourmet: 'Box Gourmet' }[product.category] || product.category}</span>
                             <span>•</span>
                             <span>{product.calories || 0} kcal</span>
                             <span>•</span>
@@ -585,10 +585,11 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
                     onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
                     style={inputStyle}
                   >
-                    <option value="bowls">Bowls Nutritivos</option>
-                    <option value="mealprep">Meal Prep Semanal</option>
-                    <option value="jugos">Jugos Detox</option>
+                    <option value="pasteleria">Pastelería</option>
+                    <option value="panificados">Panificados</option>
+                    <option value="pastas">Pastas</option>
                     <option value="snacks">Snacks & Dulces Fit</option>
+                    <option value="boxgourmet">Box Gourmet</option>
                   </select>
                 </div>
 
@@ -880,10 +881,11 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
                     onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
                     style={inputStyle}
                   >
-                    <option value="bowls">Bowls Nutritivos</option>
-                    <option value="mealprep">Meal Prep Semanal</option>
-                    <option value="jugos">Jugos Detox</option>
+                    <option value="pasteleria">Pastelería</option>
+                    <option value="panificados">Panificados</option>
+                    <option value="pastas">Pastas</option>
                     <option value="snacks">Snacks & Dulces Fit</option>
+                    <option value="boxgourmet">Box Gourmet</option>
                   </select>
                 </div>
 
