@@ -17,6 +17,7 @@ export default function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
 
   useEffect(() => {
     // Comprobar si la sesión de admin estaba iniciada en la sesión actual
@@ -36,6 +37,21 @@ export default function App() {
     setIsAdminLoggedIn(false);
     sessionStorage.removeItem('bitessaludable_admin_session');
     setIsAdminPanelOpen(false);
+    setEditingProductId(null);
+  };
+
+  const handleOpenEditProduct = (product) => {
+    if (!isAdminLoggedIn) {
+      setIsAdminLoginOpen(true);
+      return;
+    }
+    setEditingProductId(product.id);
+    setIsAdminPanelOpen(true);
+  };
+
+  const handleCloseAdminPanel = () => {
+    setIsAdminPanelOpen(false);
+    setEditingProductId(null);
   };
 
   const handleAddToCart = (product) => {
@@ -78,7 +94,10 @@ export default function App() {
         onOpenCart={() => setIsCartOpen(true)} 
         isAdminLoggedIn={isAdminLoggedIn}
         onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
-        onOpenAdminPanel={() => setIsAdminPanelOpen(true)}
+        onOpenAdminPanel={() => {
+          setEditingProductId(null);
+          setIsAdminPanelOpen(true);
+        }}
       />
       
       <main style={{ flex: 1 }}>
@@ -86,7 +105,11 @@ export default function App() {
         <ProductGallery 
           onAddToCart={handleAddToCart} 
           isAdminLoggedIn={isAdminLoggedIn}
-          onOpenAdminPanel={() => setIsAdminPanelOpen(true)}
+          onOpenAdminPanel={() => {
+            setEditingProductId(null);
+            setIsAdminPanelOpen(true);
+          }}
+          onEditProduct={handleOpenEditProduct}
         />
         <AboutUs />
         <Founders />
@@ -113,10 +136,10 @@ export default function App() {
       {/* Modal Panel de Administración */}
       <AdminPanelModal 
         isOpen={isAdminPanelOpen}
-        onClose={() => setIsAdminPanelOpen(false)}
+        onClose={handleCloseAdminPanel}
         onLogout={handleAdminLogout}
+        initialEditProductId={editingProductId}
       />
     </div>
   );
 }
-

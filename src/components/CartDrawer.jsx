@@ -68,23 +68,25 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
       // Registrar en Stitch Database
       const res = await stitchService.submitOrder(orderData);
 
-      // Formatear mensaje para WhatsApp
-      let message = `*NUEVO PEDIDO - bitessaludable*\n`;
-      message += `📋 *Orden ID:* ${res.orderId}\n`;
-      message += `👤 *Cliente:* ${cleanName}\n`;
-      if (cleanAddress) message += `📍 *Dirección:* ${cleanAddress}\n`;
-      if (cleanNotes) message += `📝 *Notas:* ${cleanNotes}\n`;
-      message += `\n*Detalle del Pedido:*\n`;
+      // Formatear mensaje para WhatsApp limpio y 100% compatible sin emojis incompatibles
+      let message = `*NUEVO PEDIDO - BITESSALUDABLE*\n\n`;
+      message += `*Orden ID:* ${res.orderId}\n`;
+      message += `*Cliente:* ${cleanName}\n`;
+      if (cleanAddress) message += `*Direccion de Entrega:* ${cleanAddress}\n`;
+      if (cleanNotes) message += `*Aclaraciones:* ${cleanNotes}\n`;
+      message += `\n*DETALLE DEL PEDIDO:*\n`;
 
       cartItems.forEach(item => {
-        message += `• ${item.quantity}x ${item.title} ($${(item.price * item.quantity).toLocaleString('es-AR')})\n`;
+        message += `- *${item.quantity}x* ${item.title} ($${(item.price * item.quantity).toLocaleString('es-AR')} ARS)\n`;
       });
 
-      message += `\n*TOTAL:* $${totalAmount.toLocaleString('es-AR')} ARS\n`;
-      message += `\n¡Gracias por elegir bitessaludable! 🌿`;
+      message += `\n*TOTAL A PAGAR:* *$${totalAmount.toLocaleString('es-AR')} ARS*\n\n`;
+      message += `Muchas gracias por elegir bitessaludable.\n`;
+      message += `Quedo a la espera de la confirmacion para coordinar el pago y la entrega.`;
 
       const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/5491100000000?text=${encodedMessage}`;
+      // Número oficial de WhatsApp: +54 9 2954 556820
+      const whatsappUrl = `https://wa.me/5492954556820?text=${encodedMessage}`;
 
       setIsSubmitting(false);
       setOrderComplete(res.orderId);
@@ -155,7 +157,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
             <CheckCircle2 size={60} color="var(--color-primary)" style={{ margin: '0 auto 1.5rem' }} />
             <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>¡Pedido Enviado!</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-              Tu orden <strong style={{ color: 'var(--color-primary-dark)' }}>{orderComplete}</strong> se ha registrado en Stitch Database y redirigido a WhatsApp para coordinar la entrega.
+              Tu orden <strong style={{ color: 'var(--color-primary-dark)' }}>{orderComplete}</strong> se ha registrado y redirigido a WhatsApp (<strong style={{ color: 'var(--color-primary)' }}>+54 9 2954 556820</strong>) para coordinar la entrega.
             </p>
             <button 
               onClick={() => {
@@ -271,7 +273,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
                     onChange={(e) => setHoneypot(e.target.value)}
                     style={{ display: 'none', position: 'absolute', left: '-9999px' }}
                     tabIndex={-1}
-                    autocomplete="off"
+                    autoComplete="off"
                   />
 
                   <input 
@@ -289,6 +291,14 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
                     maxLength={100}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
+                    style={{ padding: '0.65rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                  <input 
+                    type="text"
+                    placeholder="Aclaraciones o notas (Opcional)"
+                    maxLength={120}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
                     style={{ padding: '0.65rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '0.9rem', outline: 'none' }}
                   />
                 </form>

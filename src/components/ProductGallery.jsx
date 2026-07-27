@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Flame, Dumbbell, Eye, Plus, Star, Sparkles, Edit3, ShieldAlert } from 'lucide-react';
+import { Search, Flame, Dumbbell, Eye, Plus, Star, Sparkles, Edit3 } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
 import ProductModal from './ProductModal';
 
-export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdminPanel }) {
+export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdminPanel, onEditProduct }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('todos');
@@ -19,7 +19,7 @@ export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdm
     }
     loadProducts();
 
-    // Suscribirse a cambios en productos (agregados o modificación de precios)
+    // Suscribirse a cambios en productos
     const unsubscribe = stitchService.subscribe((updatedProducts) => {
       setProducts(updatedProducts);
     });
@@ -77,7 +77,7 @@ export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdm
                 className="btn btn-primary"
                 style={{ padding: '0.35rem 0.8rem', fontSize: '0.75rem' }}
               >
-                <Edit3 size={14} /> Abrir Panel de Precios & Productos
+                <Edit3 size={14} /> Abrir Panel de Gestión & Edición
               </button>
             </div>
           )}
@@ -203,6 +203,34 @@ export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdm
                     </div>
                   )}
 
+                  {/* Admin Direct Edit Button overlay */}
+                  {isAdminLoggedIn && (
+                    <button
+                      onClick={() => onEditProduct && onEditProduct(product)}
+                      style={{
+                        position: 'absolute',
+                        top: '0.85rem',
+                        right: product.inStock === false ? '5.2rem' : '0.85rem',
+                        background: 'var(--color-primary-dark)',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                        cursor: 'pointer',
+                        zIndex: 5
+                      }}
+                      title="Editar todos los detalles de este producto"
+                    >
+                      <Edit3 size={13} /> Editar
+                    </button>
+                  )}
+
                   {/* Stock Paused Overlay Badge */}
                   {product.inStock === false && (
                     <div style={{
@@ -263,21 +291,6 @@ export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdm
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontWeight: '600' }}>PRECIO</div>
                       <div style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--color-primary-dark)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         ${product.price.toLocaleString('es-AR')} ARS
-                        {isAdminLoggedIn && (
-                          <button
-                            onClick={onOpenAdminPanel}
-                            title="Editar precio en panel de administración"
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--color-primary)',
-                              cursor: 'pointer',
-                              padding: '2px'
-                            }}
-                          >
-                            <Edit3 size={16} />
-                          </button>
-                        )}
                       </div>
                     </div>
 
@@ -319,9 +332,13 @@ export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdm
           product={selectedProduct} 
           onClose={() => setSelectedProduct(null)} 
           onAddToCart={onAddToCart}
+          isAdminLoggedIn={isAdminLoggedIn}
+          onEditProduct={(p) => {
+            setSelectedProduct(null);
+            if (onEditProduct) onEditProduct(p);
+          }}
         />
       )}
     </section>
   );
 }
-

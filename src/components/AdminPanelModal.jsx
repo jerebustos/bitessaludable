@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload } from 'lucide-react';
+import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
 
-export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
-  const [activeTab, setActiveTab] = useState('add'); // 'add' | 'prices'
+export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEditProductId }) {
+  const [activeTab, setActiveTab] = useState('manage'); // 'manage' | 'add' | 'edit'
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  // Form states for new product
+  // Form state for creating a new product
   const [newProduct, setNewProduct] = useState({
     title: '',
     category: 'bowls',
@@ -24,26 +24,38 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
     inStock: true
   });
 
-  // Price edits state object { [productId]: price }
+  // Form state for editing an existing product
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  // Quick price edits state object { [productId]: price }
   const [priceEdits, setPriceEdits] = useState({});
 
   useEffect(() => {
     if (isOpen) {
       loadProducts();
     }
-  }, [isOpen]);
+  }, [isOpen, initialEditProductId]);
 
   const loadProducts = async () => {
     setLoading(true);
     const data = await stitchService.getProducts();
     setProducts(data);
     
-    // Initialize price edits
+    // Initialize price edits map
     const initialEdits = {};
     data.forEach(p => {
       initialEdits[p.id] = p.price;
     });
     setPriceEdits(initialEdits);
+
+    // If an initial product ID was requested to edit, open the edit tab directly
+    if (initialEditProductId) {
+      const targetProduct = data.find(p => p.id === initialEditProductId);
+      if (targetProduct) {
+        startEditingProduct(targetProduct);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -51,10 +63,10 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
 
   const showToast = (message, type = 'success') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), 3500);
   };
 
-  // Preset sample images for quick selection
+  // Sample preset images for quick selection
   const SAMPLE_IMAGES = [
     { label: 'Bowl Proteico', url: '/assets/bowl_protein.jpg' },
     { label: 'Salmón Bowl', url: '/assets/bowl_salmon.jpg' },
@@ -63,6 +75,27 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
     { label: 'Snacks Fit', url: '/assets/snacks_fit.jpg' }
   ];
 
+  // Open full product edit form
+  const startEditingProduct = (prod) => {
+    setEditingProduct({
+      id: prod.id,
+      title: prod.title || '',
+      category: prod.category || 'bowls',
+      price: prod.price !== undefined ? prod.price : '',
+      image: prod.image || '/assets/bowl_protein.jpg',
+      description: prod.description || '',
+      ingredients: Array.isArray(prod.ingredients) ? prod.ingredients.join(', ') : (prod.ingredients || ''),
+      calories: prod.calories !== undefined ? prod.calories : '',
+      protein: prod.protein || '',
+      carbs: prod.carbs || '',
+      fat: prod.fat || '',
+      isStarProduct: Boolean(prod.isStarProduct),
+      inStock: prod.inStock !== undefined ? Boolean(prod.inStock) : true
+    });
+    setActiveTab('edit');
+  };
+
+  // Submit Handler: Add Product
   const handleAddProductSubmit = async (e) => {
     e.preventDefault();
     if (!newProduct.title || !newProduct.price || !newProduct.description) {
@@ -99,9 +132,48 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
       });
 
       await loadProducts();
-      setActiveTab('prices');
+      setActiveTab('manage');
     } catch (err) {
       showToast('Ocurrió un error al guardar el producto.', 'error');
+    }
+  };
+
+  // Submit Handler: Update Product (Full Edit)
+  const handleUpdateProductSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingProduct || !editingProduct.title || editingProduct.price === '' || !editingProduct.description) {
+      showToast('Por favor completa los campos obligatorios (Título, Precio y Descripción).', 'error');
+      return;
+    }
+
+    try {
+      const ingredientsArray = typeof editingProduct.ingredients === 'string'
+        ? editingProduct.ingredients.split(',').map(i => i.trim()).filter(Boolean)
+        : (editingProduct.ingredients || []);
+
+      const updatedFields = {
+        title: editingProduct.title,
+        category: editingProduct.category,
+        price: Number(editingProduct.price),
+        image: editingProduct.image,
+        description: editingProduct.description,
+        ingredients: ingredientsArray,
+        calories: Number(editingProduct.calories) || 0,
+        protein: editingProduct.protein ? (editingProduct.protein.toString().endsWith('g') ? editingProduct.protein : `${editingProduct.protein}g`) : '0g',
+        carbs: editingProduct.carbs ? (editingProduct.carbs.toString().endsWith('g') ? editingProduct.carbs : `${editingProduct.carbs}g`) : '0g',
+        fat: editingProduct.fat ? (editingProduct.fat.toString().endsWith('g') ? editingProduct.fat : `${editingProduct.fat}g`) : '0g',
+        isStarProduct: Boolean(editingProduct.isStarProduct),
+        inStock: Boolean(editingProduct.inStock)
+      };
+
+      await stitchService.updateProduct(editingProduct.id, updatedFields);
+      showToast(`¡Producto "${editingProduct.title}" actualizado correctamente!`);
+      await loadProducts();
+      setActiveTab('manage');
+      setEditingProduct(null);
+    } catch (err) {
+      console.error('Error actualizando producto:', err);
+      showToast('Error al actualizar los detalles del producto.', 'error');
     }
   };
 
@@ -137,6 +209,10 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
         await stitchService.deleteProduct(productId);
         showToast(`Producto "${title}" eliminado.`);
         await loadProducts();
+        if (editingProduct && editingProduct.id === productId) {
+          setEditingProduct(null);
+          setActiveTab('manage');
+        }
       } catch (err) {
         showToast('Error al eliminar producto.', 'error');
       }
@@ -163,7 +239,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: '900px',
+          maxWidth: '920px',
           maxHeight: '90vh',
           background: '#ffffff',
           borderRadius: 'var(--radius-lg)',
@@ -189,14 +265,16 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span className="badge" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.75rem' }}>
-                ADMIN PANEL
+                PANEL DE ADMINISTRACIÓN
               </span>
               <h2 style={{ fontSize: '1.4rem', fontWeight: '800', margin: 0 }}>
-                Administración de Productos & Precios
+                {activeTab === 'edit' ? 'Editar Todos los Detalles del Producto' : 'Gestión de Productos & Catálogo'}
               </h2>
             </div>
             <p style={{ fontSize: '0.825rem', opacity: 0.9, marginTop: '0.2rem' }}>
-              Gestiona el catálogo, agrega nuevos platos y modifica precios en tiempo real
+              {activeTab === 'edit' 
+                ? 'Modifica ingredientes, valores nutricionales, fotos, precios y disponibilidad'
+                : 'Administra los platos de bitessaludable, crea nuevos o edita sus especificaciones'}
             </p>
           </div>
 
@@ -243,8 +321,28 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
           display: 'flex',
           borderBottom: '1px solid var(--border-light)',
           background: 'var(--bg-cream)',
-          padding: '0 1.5rem'
+          padding: '0 1.5rem',
+          gap: '0.5rem'
         }}>
+          <button
+            onClick={() => setActiveTab('manage')}
+            style={{
+              padding: '1rem 1.25rem',
+              fontWeight: '700',
+              fontSize: '0.9rem',
+              border: 'none',
+              borderBottom: activeTab === 'manage' ? '3px solid var(--color-primary)' : '3px solid transparent',
+              background: 'none',
+              color: activeTab === 'manage' ? 'var(--color-primary)' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <Edit3 size={18} /> Gestionar Productos ({products.length})
+          </button>
+
           <button
             onClick={() => setActiveTab('add')}
             style={{
@@ -264,24 +362,25 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
             <PlusCircle size={18} /> Agregar Nuevo Producto
           </button>
 
-          <button
-            onClick={() => setActiveTab('prices')}
-            style={{
-              padding: '1rem 1.25rem',
-              fontWeight: '700',
-              fontSize: '0.9rem',
-              border: 'none',
-              borderBottom: activeTab === 'prices' ? '3px solid var(--color-primary)' : '3px solid transparent',
-              background: 'none',
-              color: activeTab === 'prices' ? 'var(--color-primary)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <Edit3 size={18} /> Modificar Precios & Stock ({products.length})
-          </button>
+          {activeTab === 'edit' && editingProduct && (
+            <button
+              style={{
+                padding: '1rem 1.25rem',
+                fontWeight: '700',
+                fontSize: '0.9rem',
+                border: 'none',
+                borderBottom: '3px solid var(--color-accent)',
+                background: 'none',
+                color: 'var(--color-accent)',
+                cursor: 'default',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <Edit3 size={18} /> Editando: "{editingProduct.title}"
+            </button>
+          )}
         </div>
 
         {/* Toast Notification Alert */}
@@ -312,7 +411,155 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
         {/* Content Body Scrollable */}
         <div style={{ padding: '1.75rem', overflowY: 'auto', flex: 1 }}>
           
-          {/* TAB 1: AGREGAR NUEVO PRODUCTO */}
+          {/* TAB 1: GESTIONAR Y MODIFICAR PRODUCTOS */}
+          {activeTab === 'manage' && (
+            <div>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+                Haz clic en el botón <strong>"Editar Detalles"</strong> para modificar cualquier información del producto (ingredientes, valores nutricionales, imágenes, descripción o categoría). También puedes ajustar rápidamente precios y stock.
+              </p>
+
+              {loading ? (
+                <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-muted)' }}>Cargando catálogo de productos...</div>
+              ) : products.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-muted)' }}>No hay productos guardados.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {products.map(product => (
+                    <div 
+                      key={product.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '1rem',
+                        padding: '1rem 1.25rem',
+                        background: '#ffffff',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: 'var(--shadow-sm)',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      {/* Product Thumbnail & Details */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1 1 240px' }}>
+                        <img 
+                          src={product.image} 
+                          alt={product.title} 
+                          style={{
+                            width: '60px',
+                            height: '60px',
+                            borderRadius: 'var(--radius-sm)',
+                            objectFit: 'cover',
+                            border: '1px solid var(--border-light)'
+                          }}
+                        />
+                        <div>
+                          <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--text-dark)' }}>
+                            {product.title}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                            <span style={{ textTransform: 'capitalize', fontWeight: '600' }}>Cat: {product.category}</span>
+                            <span>•</span>
+                            <span>{product.calories || 0} kcal</span>
+                            <span>•</span>
+                            <span>Prot: {product.protein || '0g'}</span>
+                            {product.isStarProduct && <span style={{ color: '#8C4318', fontWeight: '700' }}>• ⭐ Estrella</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stock Badge Toggle */}
+                      <button
+                        onClick={() => handleToggleStock(product)}
+                        style={{
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '0.75rem',
+                          fontWeight: '700',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: product.inStock ? '#D1FAE5' : '#FEE2E2',
+                          color: product.inStock ? '#065F46' : '#991B1B'
+                        }}
+                        title="Hacer clic para cambiar disponibilidad de stock"
+                      >
+                        {product.inStock ? 'En Stock' : 'Pausado'}
+                      </button>
+
+                      {/* Controls: Price + Full Edit + Delete */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {/* Quick Price */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--text-dark)' }}>$</span>
+                          <input 
+                            type="number"
+                            min="0"
+                            step="50"
+                            value={priceEdits[product.id] !== undefined ? priceEdits[product.id] : product.price}
+                            onChange={(e) => setPriceEdits({ ...priceEdits, [product.id]: e.target.value })}
+                            style={{
+                              width: '100px',
+                              padding: '0.4rem 0.5rem',
+                              borderRadius: 'var(--radius-sm)',
+                              border: '1px solid var(--border-light)',
+                              fontSize: '0.9rem',
+                              fontWeight: '700',
+                              textAlign: 'right'
+                            }}
+                          />
+                          <button
+                            onClick={() => handleSavePrice(product.id, product.title)}
+                            className="btn btn-secondary"
+                            style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem' }}
+                            title="Guardar nuevo precio rápido"
+                          >
+                            <Save size={14} />
+                          </button>
+                        </div>
+
+                        {/* Full Edit Button */}
+                        <button
+                          onClick={() => startEditingProduct(product)}
+                          className="btn btn-primary"
+                          style={{
+                            padding: '0.45rem 0.85rem',
+                            fontSize: '0.8rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem'
+                          }}
+                          title="Editar todos los detalles de este producto (ingredientes, nutrición, fotos, etc.)"
+                        >
+                          <Edit3 size={14} /> Editar Detalles
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => handleDeleteProduct(product.id, product.title)}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            color: '#EF4444',
+                            padding: '0.45rem',
+                            cursor: 'pointer',
+                            borderRadius: 'var(--radius-sm)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Eliminar producto"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: AGREGAR NUEVO PRODUCTO */}
           {activeTab === 'add' && (
             <form onSubmit={handleAddProductSubmit}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
@@ -364,9 +611,8 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
                 <div>
                   <label style={labelStyle}>Imagen del Producto *</label>
                   
-                  {/* Contenedor de Opciones de Carga de Imagen */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {/* Botón para seleccionar archivo desde el ordenador */}
+                    {/* Subida desde ordenador */}
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                       <label 
                         className="btn btn-secondary"
@@ -382,7 +628,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
                           borderRadius: 'var(--radius-sm)'
                         }}
                       >
-                        <Upload size={16} color="var(--color-primary)" /> Subir desde mi ordenador
+                        <Upload size={16} color="var(--color-primary)" /> Subir desde ordenador
                         <input 
                           type="file"
                           accept="image/*"
@@ -393,17 +639,17 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
                               const reader = new FileReader();
                               reader.onload = (event) => {
                                 setNewProduct(prev => ({ ...prev, image: event.target?.result }));
-                                showToast('Imagen cargada correctamente desde tu ordenador.');
+                                showToast('Imagen cargada correctamente.');
                               };
                               reader.readAsDataURL(file);
                             }
                           }}
                         />
                       </label>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>o ingresa una URL</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>o URL</span>
                     </div>
 
-                    {/* Campo de texto para URL manual */}
+                    {/* URL manual */}
                     <input 
                       type="text"
                       required
@@ -413,7 +659,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
                       style={inputStyle}
                     />
 
-                    {/* Previsualización de la Imagen */}
+                    {/* Previsualización */}
                     {newProduct.image && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem' }}>
                         <img 
@@ -431,7 +677,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
                       </div>
                     )}
                   
-                    {/* Preset images fast buttons */}
+                    {/* Presets */}
                     <div style={{ marginTop: '0.2rem', display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Presets:</span>
                       {SAMPLE_IMAGES.map((sample, idx) => (
@@ -575,128 +821,301 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout }) {
             </form>
           )}
 
-          {/* TAB 2: MODIFICAR PRECIOS & STOCK */}
-          {activeTab === 'prices' && (
-            <div>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-                Edita los precios directamente en la casilla de cada producto y presiona <strong>Guardar</strong> para actualizar la tienda en tiempo real.
-              </p>
+          {/* TAB 3: EDITAR DETALLES DE UN PRODUCTO EXISTENTE */}
+          {activeTab === 'edit' && editingProduct && (
+            <form onSubmit={handleUpdateProductSubmit}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('manage');
+                    setEditingProduct(null);
+                  }}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.85rem' }}
+                >
+                  <ArrowLeft size={16} /> Volver a la lista de productos
+                </button>
 
-              {loading ? (
-                <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-muted)' }}>Cargando catálogo de productos...</div>
-              ) : products.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-muted)' }}>No hay productos guardados.</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {products.map(product => (
-                    <div 
-                      key={product.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '1rem',
-                        padding: '1rem 1.25rem',
-                        background: '#ffffff',
-                        border: '1px solid var(--border-light)',
-                        borderRadius: 'var(--radius-md)',
-                        boxShadow: 'var(--shadow-sm)',
-                        flexWrap: 'wrap'
-                      }}
-                    >
-                      {/* Product Thumbnail & Details */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1 1 250px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteProduct(editingProduct.id, editingProduct.title)}
+                  style={{
+                    background: '#FEE2E2',
+                    color: '#991B1B',
+                    border: '1px solid #FCA5A5',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  <Trash2 size={14} /> Eliminar este producto
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                
+                {/* Título */}
+                <div>
+                  <label style={labelStyle}>Título / Nombre del Plato *</label>
+                  <input 
+                    type="text"
+                    required
+                    value={editingProduct.title}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, title: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* Categoría */}
+                <div>
+                  <label style={labelStyle}>Categoría *</label>
+                  <select 
+                    value={editingProduct.category}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                    style={inputStyle}
+                  >
+                    <option value="bowls">Bowls Nutritivos</option>
+                    <option value="mealprep">Meal Prep Semanal</option>
+                    <option value="jugos">Jugos Detox</option>
+                    <option value="snacks">Snacks & Dulces Fit</option>
+                  </select>
+                </div>
+
+                {/* Precio */}
+                <div>
+                  <label style={labelStyle}>Precio ($ ARS) *</label>
+                  <input 
+                    type="number"
+                    required
+                    min="0"
+                    step="50"
+                    value={editingProduct.price}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* Imagen */}
+                <div>
+                  <label style={labelStyle}>Imagen del Producto *</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <label 
+                        className="btn btn-secondary"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          padding: '0.6rem 0.9rem',
+                          background: '#ffffff',
+                          border: '1px solid var(--border-light)',
+                          borderRadius: 'var(--radius-sm)'
+                        }}
+                      >
+                        <Upload size={16} color="var(--color-primary)" /> Cambiar imagen desde PC
+                        <input 
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                setEditingProduct(prev => ({ ...prev, image: event.target?.result }));
+                                showToast('Imagen actualizada.');
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>o URL</span>
+                    </div>
+
+                    <input 
+                      type="text"
+                      required
+                      value={editingProduct.image}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
+                      style={inputStyle}
+                    />
+
+                    {editingProduct.image && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem' }}>
                         <img 
-                          src={product.image} 
-                          alt={product.title} 
+                          src={editingProduct.image} 
+                          alt="Vista previa" 
                           style={{
                             width: '54px',
                             height: '54px',
                             borderRadius: 'var(--radius-sm)',
                             objectFit: 'cover',
-                            border: '1px solid var(--border-light)'
+                            border: '2px solid var(--color-primary-light)'
                           }}
                         />
-                        <div>
-                          <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--text-dark)' }}>
-                            {product.title}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
-                            <span style={{ textTransform: 'capitalize' }}>Cat: {product.category}</span>
-                            <span>•</span>
-                            <span>{product.calories} kcal</span>
-                            {product.isStarProduct && <span>• ⭐ Estrella</span>}
-                          </div>
-                        </div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Vista previa actual</span>
                       </div>
+                    )}
 
-                      {/* Stock Badge Toggle */}
-                      <button
-                        onClick={() => handleToggleStock(product)}
-                        style={{
-                          padding: '0.35rem 0.75rem',
-                          borderRadius: 'var(--radius-full)',
-                          fontSize: '0.75rem',
-                          fontWeight: '700',
-                          border: 'none',
-                          cursor: 'pointer',
-                          background: product.inStock ? '#D1FAE5' : '#FEE2E2',
-                          color: product.inStock ? '#065F46' : '#991B1B'
-                        }}
-                      >
-                        {product.inStock ? 'En Stock' : 'Pausado'}
-                      </button>
-
-                      {/* Price Edit Control */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '0 0 auto' }}>
-                        <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-dark)' }}>$</span>
-                        <input 
-                          type="number"
-                          min="0"
-                          step="50"
-                          value={priceEdits[product.id] !== undefined ? priceEdits[product.id] : product.price}
-                          onChange={(e) => setPriceEdits({ ...priceEdits, [product.id]: e.target.value })}
+                    {/* Presets */}
+                    <div style={{ marginTop: '0.2rem', display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Presets:</span>
+                      {SAMPLE_IMAGES.map((sample, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setEditingProduct({ ...editingProduct, image: sample.url })}
                           style={{
-                            width: '110px',
-                            padding: '0.45rem 0.6rem',
-                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.7rem',
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: 'var(--radius-full)',
                             border: '1px solid var(--border-light)',
-                            fontSize: '0.95rem',
-                            fontWeight: '700',
-                            textAlign: 'right'
+                            background: editingProduct.image === sample.url ? 'var(--color-primary-light)' : '#f3f4f6',
+                            color: 'var(--text-dark)',
+                            cursor: 'pointer'
                           }}
-                        />
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ARS</span>
-
-                        <button
-                          onClick={() => handleSavePrice(product.id, product.title)}
-                          className="btn btn-primary"
-                          style={{ padding: '0.45rem 0.85rem', fontSize: '0.825rem' }}
-                          title="Guardar nuevo precio"
                         >
-                          <Save size={14} /> Guardar
+                          {sample.label}
                         </button>
-
-                        <button
-                          onClick={() => handleDeleteProduct(product.id, product.title)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#EF4444',
-                            padding: '0.45rem',
-                            cursor: 'pointer',
-                            borderRadius: 'var(--radius-sm)'
-                          }}
-                          title="Eliminar producto"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+
+              {/* Descripción */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={labelStyle}>Descripción Detallada *</label>
+                <textarea 
+                  required
+                  rows={4}
+                  value={editingProduct.description}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Ingredientes */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={labelStyle}>Ingredientes (separados por coma)</label>
+                <input 
+                  type="text"
+                  value={editingProduct.ingredients}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, ingredients: e.target.value })}
+                  style={inputStyle}
+                  placeholder="Ej: Pechuga de pollo, Quinoa, Palta, Brócoli"
+                />
+              </div>
+
+              {/* Información Nutricional */}
+              <div style={{
+                background: 'var(--bg-cream)',
+                padding: '1.25rem',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1.25rem',
+                border: '1px solid var(--border-light)'
+              }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: '700', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
+                  Información Nutricional (Macronutrientes)
+                </h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem' }}>
+                  <div>
+                    <label style={subLabelStyle}><Flame size={12} color="var(--color-accent)" /> Calorías (kcal)</label>
+                    <input 
+                      type="number"
+                      value={editingProduct.calories}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, calories: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={subLabelStyle}><Dumbbell size={12} color="var(--color-primary)" /> Proteínas (g)</label>
+                    <input 
+                      type="text"
+                      value={editingProduct.protein}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, protein: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={subLabelStyle}><Wheat size={12} color="var(--color-secondary)" /> Carbohidratos (g)</label>
+                    <input 
+                      type="text"
+                      value={editingProduct.carbs}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, carbs: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={subLabelStyle}><Heart size={12} color="#E11D48" /> Grasas (g)</label>
+                    <input 
+                      type="text"
+                      value={editingProduct.fat}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, fat: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Opciones booleanas */}
+              <div style={{ display: 'flex', gap: '2rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>
+                  <input 
+                    type="checkbox"
+                    checked={editingProduct.isStarProduct}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, isStarProduct: e.target.checked })}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                  />
+                  <Star size={16} fill={editingProduct.isStarProduct ? '#8C4318' : 'none'} color="#8C4318" /> Producto Estrella (Destacado)
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>
+                  <input 
+                    type="checkbox"
+                    checked={editingProduct.inStock}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, inStock: e.target.checked })}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                  />
+                  <PackageCheck size={16} color="var(--color-primary)" /> Disponible en Stock
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('manage');
+                    setEditingProduct(null);
+                  }}
+                  className="btn btn-secondary"
+                  style={{ flex: '1', padding: '0.85rem' }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: '2', padding: '0.85rem', fontSize: '1rem' }}
+                >
+                  <Save size={18} /> Guardar Todos los Cambios
+                </button>
+              </div>
+            </form>
           )}
 
         </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Instagram, Phone, Mail, MapPin, Clock, Leaf } from 'lucide-react';
+import { Heart, Instagram, Phone, MapPin, Clock } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -31,7 +31,7 @@ export default function Footer() {
               Comida real, fresca y deliciosa elaborada con amor para nutrir tu cuerpo todos los días. Viandas, bowls y snacks orgánicos sin conservantes.
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
               <a 
                 href="https://www.instagram.com/bitessaludable/" 
                 target="_blank" 
@@ -51,6 +51,27 @@ export default function Footer() {
                 }}
               >
                 <Instagram size={18} /> @bitessaludable
+              </a>
+
+              <a 
+                href="https://wa.me/5492954556820" 
+                target="_blank" 
+                rel="noreferrer"
+                style={{
+                  height: '38px',
+                  padding: '0 1rem',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  color: '#10B981',
+                  fontWeight: '700',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <Phone size={16} /> WhatsApp Directo
               </a>
             </div>
           </div>
@@ -74,6 +95,12 @@ export default function Footer() {
               Contacto & Pedidos
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.9rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Phone size={16} color="var(--color-primary-light)" />
+                <a href="https://wa.me/5492954556820" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontWeight: '600' }}>
+                  +54 9 2954 556820
+                </a>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <Instagram size={16} color="var(--color-primary-light)" />
                 <a href="https://www.instagram.com/bitessaludable/" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>

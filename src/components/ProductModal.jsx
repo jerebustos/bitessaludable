@@ -1,7 +1,7 @@
 import React from 'react';
-import { X, Flame, Dumbbell, Wheat, Heart, Plus, Check } from 'lucide-react';
+import { X, Flame, Dumbbell, Wheat, Heart, Plus, Edit3 } from 'lucide-react';
 
-export default function ProductModal({ product, onClose, onAddToCart }) {
+export default function ProductModal({ product, onClose, onAddToCart, isAdminLoggedIn, onEditProduct }) {
   if (!product) return null;
 
   return (
@@ -50,7 +50,9 @@ export default function ProductModal({ product, onClose, onAddToCart }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'background 0.2s'
+            transition: 'background 0.2s',
+            border: 'none',
+            cursor: 'pointer'
           }}
         >
           <X size={20} />
@@ -73,9 +75,11 @@ export default function ProductModal({ product, onClose, onAddToCart }) {
             <span className="badge badge-peach" style={{ fontWeight: '700' }}>
               ${product.price.toLocaleString('es-AR')} ARS
             </span>
-            <span className="badge badge-primary">
-              Producto Estrella
-            </span>
+            {product.isStarProduct && (
+              <span className="badge badge-primary">
+                Producto Estrella
+              </span>
+            )}
           </div>
         </div>
 
@@ -126,16 +130,33 @@ export default function ProductModal({ product, onClose, onAddToCart }) {
               Ingredientes Seleccionados:
             </h4>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-              {product.ingredients.map((ing, i) => (
+              {Array.isArray(product.ingredients) ? product.ingredients.map((ing, i) => (
                 <span key={i} className="badge badge-secondary" style={{ fontSize: '0.8rem' }}>
                   • {ing}
                 </span>
-              ))}
+              )) : (
+                <span className="badge badge-secondary" style={{ fontSize: '0.8rem' }}>
+                  • {product.ingredients}
+                </span>
+              )}
             </div>
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            {isAdminLoggedIn && (
+              <button 
+                onClick={() => {
+                  if (onEditProduct) onEditProduct(product);
+                  onClose();
+                }}
+                className="btn btn-secondary"
+                style={{ padding: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <Edit3 size={18} /> Editar Detalles
+              </button>
+            )}
+
             <button 
               onClick={() => {
                 onAddToCart(product);
@@ -143,8 +164,9 @@ export default function ProductModal({ product, onClose, onAddToCart }) {
               }}
               className="btn btn-primary"
               style={{ flex: 1, padding: '0.9rem' }}
+              disabled={product.inStock === false}
             >
-              <Plus size={18} /> Agregar al Pedido (${product.price.toLocaleString('es-AR')})
+              <Plus size={18} /> {product.inStock === false ? 'Sin Stock Disponible' : `Agregar al Pedido ($${product.price.toLocaleString('es-AR')})`}
             </button>
           </div>
         </div>
