@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft, Lock, Mail, ShieldAlert } from 'lucide-react';
+import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft, Lock, Mail, ShieldAlert, Download, FileJson } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
 import { saveNewAdminPassword, saveRecoveryEmail, getRecoveryEmail, isFirstTimeAdminSetup } from '../utils/securityUtils';
 
@@ -255,6 +255,29 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
     }
   };
 
+  const handleExportCatalog = () => {
+    stitchService.exportCatalogJSON();
+    showToast('¡Copia de seguridad del catálogo descargada (JSON)!');
+  };
+
+  const handleImportCatalog = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          await stitchService.importCatalogJSON(parsed);
+          showToast('¡Catálogo importado y restaurado exitosamente!');
+          await loadProducts();
+        } catch (err) {
+          showToast('El archivo JSON no tiene un formato válido.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
   const handleChangePasswordSubmit = async (e) => {
     e.preventDefault();
     if (customPass.length < 6) {
@@ -338,7 +361,49 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button 
+              onClick={handleExportCatalog}
+              className="btn"
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                border: '1px solid rgba(255,255,255,0.3)',
+                padding: '0.5rem 0.8rem',
+                fontSize: '0.78rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+              title="Descargar copia de seguridad en JSON"
+            >
+              <Download size={14} /> Respaldar JSON
+            </button>
+
+            <label 
+              className="btn"
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                border: '1px solid rgba(255,255,255,0.3)',
+                padding: '0.5rem 0.8rem',
+                fontSize: '0.78rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer'
+              }}
+              title="Restaurar o importar catálogo desde un archivo JSON"
+            >
+              <FileJson size={14} /> Importar JSON
+              <input 
+                type="file" 
+                accept=".json"
+                style={{ display: 'none' }}
+                onChange={handleImportCatalog}
+              />
+            </label>
+
             <button 
               onClick={onLogout}
               className="btn"
@@ -346,8 +411,8 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
                 background: 'rgba(239, 68, 68, 0.2)',
                 color: '#ffffff',
                 border: '1px solid rgba(255,255,255,0.3)',
-                padding: '0.5rem 0.9rem',
-                fontSize: '0.8rem',
+                padding: '0.5rem 0.8rem',
+                fontSize: '0.78rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem'

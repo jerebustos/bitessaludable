@@ -98,19 +98,17 @@ class StitchService {
     this.isConnected = true;
     this.useMock = STITCH_CONFIG.offlineMockMode;
     this.listeners = [];
-    this.STORAGE_KEY = 'bitessaludable_products_v2';
+    this.STORAGE_KEY = 'bitessaludable_products_v3';
     // Cache en memoria sincronizado en tiempo real
     this.productsCache = this._getLocalProducts();
   }
 
   _getLocalProducts() {
     try {
-      // Intentar leer de la versión actual
-      let stored = localStorage.getItem(this.STORAGE_KEY);
-      // Fallback a clave anterior si existe
-      if (!stored) {
-        stored = localStorage.getItem('bitessaludable_products');
-      }
+      // Intentar leer de cualquiera de las claves guardadas en el navegador
+      let stored = localStorage.getItem(this.STORAGE_KEY) ||
+                   localStorage.getItem('bitessaludable_products_v2') ||
+                   localStorage.getItem('bitessaludable_products');
       
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -120,13 +118,24 @@ class StitchService {
             mealprep: 'panificados',
             jugos: 'pasteleria'
           };
-          const migrated = parsed.map(p => {
+          
+          // Preservar siempre productos personalizados creados por el administrador ('prod-...')
+          const customProducts = parsed.filter(p => p.id && !INITIAL_PRODUCTS.some(init => init.id === p.id));
+          
+          // Mantener actualizaciones realizadas en productos base
+          const baseProducts = INITIAL_PRODUCTS.map(init => {
+            const existing = parsed.find(p => p.id === init.id);
+            return existing ? { ...init, ...existing } : init;
+          });
+
+          const merged = [...customProducts, ...baseProducts].map(p => {
             if (categoryMap[p.category]) {
               return { ...p, category: categoryMap[p.category] };
             }
             return p;
           });
-          return migrated;
+
+          return merged;
         }
       }
     } catch (e) {
@@ -141,10 +150,12 @@ class StitchService {
     this.productsCache = [...products];
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(products));
+      // Guardar respaldos en claves secundarias para máxima compatibilidad
+      localStorage.setItem('bitessaludable_products_v2', JSON.stringify(products));
+      localStorage.setItem('bitessaludable_products', JSON.stringify(products));
     } catch (e) {
       console.error('Error al guardar en localStorage (cuota excedida, intentando almacenamiento optimizado):', e);
       try {
-        // Intento de fallback: optimizar imágenes pesadas si localStorage está lleno
         const lightweightProducts = products.map(p => ({
           ...p,
           image: (p.image && p.image.length > 500000) ? '/assets/bowl_protein.jpg' : p.image
@@ -243,6 +254,27 @@ class StitchService {
     const updated = currentProducts.filter(prod => prod.id !== productId);
     this._saveLocalProducts(updated);
     return true;
+  }
+
+  // Exportar el catálogo completo en formato JSON descargable
+  exportCatalogJSON() {
+    const products = this.productsCache || INITIAL_PRODUCTS;
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(products, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `catalogo_bitessaludable_${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  }
+
+  // Importar un archivo JSON de productos para restaurar/sincronizar el catálogo completo
+  async importCatalogJSON(productsArray) {
+    if (!Array.isArray(productsArray) || productsArray.length === 0) {
+      throw new Error('El archivo importado no contiene una lista de productos válida.');
+    }
+    this._saveLocalProducts(productsArray);
+    return productsArray;
   }
 
   // Obtener información de las fundadoras
