@@ -2,11 +2,12 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bitessaludable",
   "compatibility_date": "2026-07-24",
+  "workers_dev": true,
   "assets": {
     "directory": "./dist"
   },
   "routes": [
-    { "pattern": "bitessaludable.com.ar/*", "custom_domain": true },
-    { "pattern": "www.bitessaludable.com.ar/*", "custom_domain": true }
+    { "pattern": "bitessaludable.com.ar", "custom_domain": true },
+    { "pattern": "www.bitessaludable.com.ar", "custom_domain": true }
   ]
 }

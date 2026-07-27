@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft, Lock } from 'lucide-react';
+import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft, Lock, Mail, ShieldAlert } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
+import { saveNewAdminPassword, saveRecoveryEmail, getRecoveryEmail, isFirstTimeAdminSetup } from '../utils/securityUtils';
 
 // Helper para compresión rápida de fotos usando Canvas
 const compressImageFile = (file, maxWidth = 800, quality = 0.8) => {
@@ -37,9 +38,11 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  // Form states for password security change
+  // Form states for password security & recovery email change
   const [customPass, setCustomPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [isFirstTime, setIsFirstTime] = useState(false);
 
   // Form state for creating a new product
   const [newProduct, setNewProduct] = useState({
@@ -252,7 +255,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
     }
   };
 
-  const handleChangePasswordSubmit = (e) => {
+  const handleChangePasswordSubmit = async (e) => {
     e.preventDefault();
     if (customPass.length < 6) {
       showToast('La contraseña debe tener al menos 6 caracteres.', 'error');
@@ -262,10 +265,17 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
       showToast('Las contraseñas no coinciden.', 'error');
       return;
     }
-    localStorage.setItem('bitessaludable_custom_admin_pass', customPass);
-    showToast('¡Contraseña de administración actualizada y protegida correctamente!');
+    if (!recoveryEmail || !recoveryEmail.includes('@')) {
+      showToast('Por favor ingresa un correo electrónico de recuperación válido.', 'error');
+      return;
+    }
+
+    await saveNewAdminPassword(customPass);
+    saveRecoveryEmail(recoveryEmail);
+    showToast('¡Configuración de seguridad y clave privada guardadas exitosamente!');
     setCustomPass('');
     setConfirmPass('');
+    setIsFirstTime(false);
     setActiveTab('manage');
   };
 
@@ -1191,17 +1201,56 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
 
           {/* TAB 4: CAMBIAR CLAVE DE ADMINISTRACIÓN Y SEGURIDAD */}
           {activeTab === 'security' && (
-            <form onSubmit={handleChangePasswordSubmit} style={{ maxWidth: '480px', margin: '0 auto', padding: '1rem 0' }}>
+            <form onSubmit={handleChangePasswordSubmit} style={{ maxWidth: '520px', margin: '0 auto', padding: '1rem 0' }}>
+              {isFirstTime && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: '#FEF3C7',
+                  border: '1px solid #F59E0B',
+                  color: '#92400E',
+                  fontSize: '0.875rem',
+                  marginBottom: '1.5rem',
+                  lineHeight: 1.5
+                }}>
+                  <ShieldAlert size={22} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong>¡Configuración Inicial de Seguridad Requerida!</strong>
+                    <p style={{ margin: '0.2rem 0 0' }}>
+                      Por tu seguridad, ingresa una nueva contraseña privada y tu correo electrónico de recuperación antes de gestionar la tienda.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
                 <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(30, 130, 134, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
                   <Lock size={28} color="var(--color-primary)" />
                 </div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-dark)' }}>
-                  Cambiar Clave de Acceso Administrador
+                  Seguridad de Acceso & Respaldo
                 </h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: 1.5 }}>
-                  Establece una clave privada para proteger tu panel de administración. Ningún tercero podrá acceder sin tu autorización.
+                  Protección cifrada SHA-256. Establece tu clave privada y correo de recuperación.
                 </p>
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={labelStyle}>Correo Electrónico de Recuperación *</label>
+                <input 
+                  type="email"
+                  required
+                  placeholder="tu-correo@ejemplo.com"
+                  value={recoveryEmail}
+                  onChange={(e) => setRecoveryEmail(e.target.value)}
+                  style={inputStyle}
+                />
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  * Este correo te permitirá recuperar el acceso si olvidas tu contraseña.
+                </div>
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
@@ -1235,7 +1284,7 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
                 className="btn btn-primary"
                 style={{ width: '100%', padding: '0.9rem', fontSize: '0.95rem' }}
               >
-                <Save size={18} /> Guardar Nueva Clave Privada
+                <Save size={18} /> Guardar Configuración de Seguridad Cifrada
               </button>
             </form>
           )}
