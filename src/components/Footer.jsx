@@ -28,7 +28,7 @@ export default function Footer() {
             </div>
 
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-              Comida real, fresca y deliciosa elaborada con amor para nutrir tu cuerpo todos los días. Viandas, bowls y snacks orgánicos sin conservantes.
+              Comida real, fresca y deliciosa elaborada con amor para nutrir tu cuerpo todos los días. Pastelería, Panificados, Pastas, Snacks & Dulces Fit y Box Gourmet sin conservantes.
             </p>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>

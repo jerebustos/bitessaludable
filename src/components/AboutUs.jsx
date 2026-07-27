@@ -22,7 +22,7 @@ export default function AboutUs() {
             </p>
 
             <p style={{ fontSize: '1.05rem', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '2rem' }}>
-              Lo que comenzó como una búsqueda personal por hábitos más saludables en nuestra propia cocina, rápidamente se convirtió en un emprendimiento apasionado dedicado a preparar viandas, bowls y snacks nutritivos elaborados desde cero cada mañana, con insumos 100% naturales y locales.
+              Lo que comenzó como una búsqueda personal por hábitos más saludables en nuestra propia cocina, rápidamente se convirtió en un emprendimiento apasionado dedicado a preparar deliciosas opciones de Pastelería, Panificados, Pastas, Snacks & Dulces Fit y Box Gourmet elaborados desde cero cada mañana, con insumos 100% naturales y locales.
             </p>
 
             {/* Core Values Grid */}
