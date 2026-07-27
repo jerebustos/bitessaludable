@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft } from 'lucide-react';
+import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft, Lock } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
 
 export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEditProductId }) {
-  const [activeTab, setActiveTab] = useState('manage'); // 'manage' | 'add' | 'edit'
+  const [activeTab, setActiveTab] = useState('manage'); // 'manage' | 'add' | 'edit' | 'security'
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
+
+  // Form states for password security change
+  const [customPass, setCustomPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
 
   // Form state for creating a new product
   const [newProduct, setNewProduct] = useState({
@@ -219,6 +223,23 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
     }
   };
 
+  const handleChangePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (customPass.length < 6) {
+      showToast('La contraseña debe tener al menos 6 caracteres.', 'error');
+      return;
+    }
+    if (customPass !== confirmPass) {
+      showToast('Las contraseñas no coinciden.', 'error');
+      return;
+    }
+    localStorage.setItem('bitessaludable_custom_admin_pass', customPass);
+    showToast('¡Contraseña de administración actualizada y protegida correctamente!');
+    setCustomPass('');
+    setConfirmPass('');
+    setActiveTab('manage');
+  };
+
   return (
     <div 
       style={{
@@ -360,6 +381,25 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
             }}
           >
             <PlusCircle size={18} /> Agregar Nuevo Producto
+          </button>
+
+          <button
+            onClick={() => setActiveTab('security')}
+            style={{
+              padding: '1rem 1.25rem',
+              fontWeight: '700',
+              fontSize: '0.9rem',
+              border: 'none',
+              borderBottom: activeTab === 'security' ? '3px solid var(--color-primary)' : '3px solid transparent',
+              background: 'none',
+              color: activeTab === 'security' ? 'var(--color-primary)' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <Lock size={18} /> Clave & Seguridad
           </button>
 
           {activeTab === 'edit' && editingProduct && (
@@ -1117,6 +1157,57 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
                   <Save size={18} /> Guardar Todos los Cambios
                 </button>
               </div>
+            </form>
+          )}
+
+          {/* TAB 4: CAMBIAR CLAVE DE ADMINISTRACIÓN Y SEGURIDAD */}
+          {activeTab === 'security' && (
+            <form onSubmit={handleChangePasswordSubmit} style={{ maxWidth: '480px', margin: '0 auto', padding: '1rem 0' }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(30, 130, 134, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
+                  <Lock size={28} color="var(--color-primary)" />
+                </div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-dark)' }}>
+                  Cambiar Clave de Acceso Administrador
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: 1.5 }}>
+                  Establece una clave privada para proteger tu panel de administración. Ningún tercero podrá acceder sin tu autorización.
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={labelStyle}>Nueva Contraseña Privada *</label>
+                <input 
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder="Mínimo 6 caracteres"
+                  value={customPass}
+                  onChange={(e) => setCustomPass(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.75rem' }}>
+                <label style={labelStyle}>Confirmar Nueva Contraseña *</label>
+                <input 
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder="Repite la nueva contraseña"
+                  value={confirmPass}
+                  onChange={(e) => setConfirmPass(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+
+              <button 
+                type="submit"
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '0.9rem', fontSize: '0.95rem' }}
+              >
+                <Save size={18} /> Guardar Nueva Clave Privada
+              </button>
             </form>
           )}
 
