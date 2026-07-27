@@ -91,50 +91,71 @@ const INITIAL_FOUNDERS = [
 ];
 
 /**
- * Servicio Stitch para consulta y sincronización de datos con persistencia en localStorage
+ * Servicio Stitch para consulta y sincronización de datos con persistencia permanente en localStorage
  */
 class StitchService {
   constructor() {
     this.isConnected = true;
     this.useMock = STITCH_CONFIG.offlineMockMode;
     this.listeners = [];
-    this.STORAGE_KEY = 'bitessaludable_products';
+    this.STORAGE_KEY = 'bitessaludable_products_v2';
+    // Cache en memoria sincronizado en tiempo real
+    this.productsCache = this._getLocalProducts();
   }
 
   _getLocalProducts() {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
+      // Intentar leer de la versión actual
+      let stored = localStorage.getItem(this.STORAGE_KEY);
+      // Fallback a clave anterior si existe
+      if (!stored) {
+        stored = localStorage.getItem('bitessaludable_products');
+      }
+      
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Migración de categorías viejas a las nuevas opciones
-        const categoryMap = {
-          bowls: 'boxgourmet',
-          mealprep: 'panificados',
-          jugos: 'pasteleria'
-        };
-        const migrated = parsed.map(p => {
-          if (categoryMap[p.category]) {
-            return { ...p, category: categoryMap[p.category] };
-          }
-          return p;
-        });
-        return migrated;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const categoryMap = {
+            bowls: 'boxgourmet',
+            mealprep: 'panificados',
+            jugos: 'pasteleria'
+          };
+          const migrated = parsed.map(p => {
+            if (categoryMap[p.category]) {
+              return { ...p, category: categoryMap[p.category] };
+            }
+            return p;
+          });
+          return migrated;
+        }
       }
     } catch (e) {
-      console.warn('Error al leer de localStorage:', e);
+      console.warn('Error al leer productos de localStorage:', e);
     }
-    // Si no hay almacenados, guardamos y retornamos los productos iniciales
+    // Si no hay nada almacenado, guardamos los iniciales y retornamos
     this._saveLocalProducts(INITIAL_PRODUCTS);
     return INITIAL_PRODUCTS;
   }
 
   _saveLocalProducts(products) {
+    this.productsCache = [...products];
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(products));
-      this.notifyListeners(products);
     } catch (e) {
-      console.error('Error al guardar en localStorage:', e);
+      console.error('Error al guardar en localStorage (cuota excedida, intentando almacenamiento optimizado):', e);
+      try {
+        // Intento de fallback: optimizar imágenes pesadas si localStorage está lleno
+        const lightweightProducts = products.map(p => ({
+          ...p,
+          image: (p.image && p.image.length > 500000) ? '/assets/bowl_protein.jpg' : p.image
+        }));
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(lightweightProducts));
+      } catch (err2) {
+        console.error('Fallback localStorage falló:', err2);
+      }
     }
+    // Notificar inmediatamente a la UI
+    this.notifyListeners(this.productsCache);
   }
 
   subscribe(listener) {
@@ -150,20 +171,23 @@ class StitchService {
 
   // Obtener todos los productos
   async getProducts() {
-    try {
-      const products = this._getLocalProducts();
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(products), 100);
-      });
-    } catch (error) {
-      console.warn('Stitch fetch error, usando fallback local:', error);
-      return INITIAL_PRODUCTS;
+    if (!this.productsCache || this.productsCache.length === 0) {
+      this.productsCache = this._getLocalProducts();
     }
+    return Promise.resolve([...this.productsCache]);
   }
 
   // Agregar nuevo producto
   async addProduct(newProductData) {
-    const currentProducts = this._getLocalProducts();
+    const currentProducts = await this.getProducts();
+    
+    const parseMacro = (val) => {
+      if (val === undefined || val === null) return '0g';
+      const str = String(val).trim();
+      if (!str) return '0g';
+      return str.endsWith('g') ? str : `${str}g`;
+    };
+
     const newProduct = {
       id: 'prod-' + Date.now(),
       title: newProductData.title || 'Nuevo Producto',
@@ -173,11 +197,11 @@ class StitchService {
       description: newProductData.description || '',
       ingredients: Array.isArray(newProductData.ingredients)
         ? newProductData.ingredients
-        : (newProductData.ingredients || '').split(',').map(i => i.trim()).filter(Boolean),
+        : (typeof newProductData.ingredients === 'string' ? newProductData.ingredients.split(',').map(i => i.trim()).filter(Boolean) : []),
       calories: Number(newProductData.calories) || 0,
-      protein: typeof newProductData.protein === 'number' ? `${newProductData.protein}g` : (newProductData.protein || '0g'),
-      carbs: typeof newProductData.carbs === 'number' ? `${newProductData.carbs}g` : (newProductData.carbs || '0g'),
-      fat: typeof newProductData.fat === 'number' ? `${newProductData.fat}g` : (newProductData.fat || '0g'),
+      protein: parseMacro(newProductData.protein),
+      carbs: parseMacro(newProductData.carbs),
+      fat: parseMacro(newProductData.fat),
       isStarProduct: Boolean(newProductData.isStarProduct),
       inStock: newProductData.inStock !== undefined ? Boolean(newProductData.inStock) : true
     };
@@ -189,7 +213,7 @@ class StitchService {
 
   // Actualizar solo precio de un producto
   async updateProductPrice(productId, newPrice) {
-    const currentProducts = this._getLocalProducts();
+    const currentProducts = await this.getProducts();
     const updated = currentProducts.map(prod => {
       if (prod.id === productId) {
         return { ...prod, price: Number(newPrice) };
@@ -202,7 +226,7 @@ class StitchService {
 
   // Actualizar datos de un producto existente
   async updateProduct(productId, updatedFields) {
-    const currentProducts = this._getLocalProducts();
+    const currentProducts = await this.getProducts();
     const updated = currentProducts.map(prod => {
       if (prod.id === productId) {
         return { ...prod, ...updatedFields };
@@ -215,7 +239,7 @@ class StitchService {
 
   // Eliminar producto
   async deleteProduct(productId) {
-    const currentProducts = this._getLocalProducts();
+    const currentProducts = await this.getProducts();
     const updated = currentProducts.filter(prod => prod.id !== productId);
     this._saveLocalProducts(updated);
     return true;
@@ -223,22 +247,16 @@ class StitchService {
 
   // Obtener información de las fundadoras
   async getFounders() {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(INITIAL_FOUNDERS), 100);
-    });
+    return Promise.resolve(INITIAL_FOUNDERS);
   }
 
   // Registrar pedido enviado por el usuario
   async submitOrder(orderData) {
     console.log('📦 Registrando pedido en Stitch Database...', orderData);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          orderId: 'STITCH-ORD-' + Math.floor(100000 + Math.random() * 900000),
-          timestamp: new Date().toISOString()
-        });
-      }, 400);
+    return Promise.resolve({
+      success: true,
+      orderId: 'STITCH-ORD-' + Math.floor(100000 + Math.random() * 900000),
+      timestamp: new Date().toISOString()
     });
   }
 

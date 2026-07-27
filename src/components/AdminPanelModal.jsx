@@ -2,6 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft, Lock } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
 
+// Helper para compresión rápida de fotos usando Canvas
+const compressImageFile = (file, maxWidth = 800, quality = 0.8) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => resolve(event.target.result);
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEditProductId }) {
   const [activeTab, setActiveTab] = useState('manage'); // 'manage' | 'add' | 'edit' | 'security'
   const [products, setProducts] = useState([]);
@@ -112,9 +141,9 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
         ...newProduct,
         price: Number(newProduct.price),
         calories: Number(newProduct.calories) || 0,
-        protein: newProduct.protein ? (newProduct.protein.endsWith('g') ? newProduct.protein : `${newProduct.protein}g`) : '0g',
-        carbs: newProduct.carbs ? (newProduct.carbs.endsWith('g') ? newProduct.carbs : `${newProduct.carbs}g`) : '0g',
-        fat: newProduct.fat ? (newProduct.fat.endsWith('g') ? newProduct.fat : `${newProduct.fat}g`) : '0g'
+        protein: newProduct.protein || '0g',
+        carbs: newProduct.carbs || '0g',
+        fat: newProduct.fat || '0g'
       });
 
       showToast(`¡Producto "${newProduct.title}" agregado exitosamente!`);
@@ -163,9 +192,9 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
         description: editingProduct.description,
         ingredients: ingredientsArray,
         calories: Number(editingProduct.calories) || 0,
-        protein: editingProduct.protein ? (editingProduct.protein.toString().endsWith('g') ? editingProduct.protein : `${editingProduct.protein}g`) : '0g',
-        carbs: editingProduct.carbs ? (editingProduct.carbs.toString().endsWith('g') ? editingProduct.carbs : `${editingProduct.carbs}g`) : '0g',
-        fat: editingProduct.fat ? (editingProduct.fat.toString().endsWith('g') ? editingProduct.fat : `${editingProduct.fat}g`) : '0g',
+        protein: editingProduct.protein || '0g',
+        carbs: editingProduct.carbs || '0g',
+        fat: editingProduct.fat || '0g',
         isStarProduct: Boolean(editingProduct.isStarProduct),
         inStock: Boolean(editingProduct.inStock)
       };
@@ -674,15 +703,15 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
                           type="file"
                           accept="image/*"
                           style={{ display: 'none' }}
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                setNewProduct(prev => ({ ...prev, image: event.target?.result }));
-                                showToast('Imagen cargada correctamente.');
-                              };
-                              reader.readAsDataURL(file);
+                              showToast('Procesando e imágen optimizada...');
+                              const compressed = await compressImageFile(file);
+                              if (compressed) {
+                                setNewProduct(prev => ({ ...prev, image: compressed }));
+                                showToast('Imagen cargada y optimizada correctamente.');
+                              }
                             }
                           }}
                         />
@@ -967,15 +996,15 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
                           type="file"
                           accept="image/*"
                           style={{ display: 'none' }}
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                setEditingProduct(prev => ({ ...prev, image: event.target?.result }));
-                                showToast('Imagen actualizada.');
-                              };
-                              reader.readAsDataURL(file);
+                              showToast('Procesando e imágen optimizada...');
+                              const compressed = await compressImageFile(file);
+                              if (compressed) {
+                                setEditingProduct(prev => ({ ...prev, image: compressed }));
+                                showToast('Imagen actualizada y optimizada.');
+                              }
                             }
                           }}
                         />
