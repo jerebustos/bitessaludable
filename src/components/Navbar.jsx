@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Menu, X, Leaf, Shield, Lock } from 'lucide-react';
-import { stitchService } from '../services/stitchService';
+import { ShoppingBag, Menu, X, Leaf, Shield, Lock, Home, Utensils, BookOpen, Users, ChevronRight, MapPin, Sparkles } from 'lucide-react';
 
 export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenAdminLogin, onOpenAdminPanel }) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -13,6 +12,25 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Bloquear el scroll del fondo cuando el menú móvil está abierto
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
+  const navLinks = [
+    { label: 'Inicio', href: '#hero', icon: Home },
+    { label: 'Productos', href: '#productos', icon: Utensils },
+    { label: 'Nuestra Historia', href: '#historia', icon: BookOpen },
+    { label: 'Las Creadoras', href: '#creadoras', icon: Users }
+  ];
 
   return (
     <header className={`navbar-header ${isScrolled ? 'scrolled' : ''}`}>
@@ -84,39 +102,92 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="mobile-toggle"
-            aria-label="Abrir menú"
+            aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Overlay Oscuro para Menú Móvil */}
       {mobileMenuOpen && (
-        <div className="mobile-drawer-menu">
-          <a href="#hero" onClick={() => setMobileMenuOpen(false)}>Inicio</a>
-          <a href="#productos" onClick={() => setMobileMenuOpen(false)}>Productos</a>
-          <a href="#historia" onClick={() => setMobileMenuOpen(false)}>Nuestra Historia</a>
-          <a href="#creadoras" onClick={() => setMobileMenuOpen(false)}>Las Creadoras</a>
-          <div className="mobile-drawer-admin">
+        <div 
+          className="mobile-menu-overlay" 
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Menú Desplegable Lateral Móvil */}
+      <div className={`mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}>
+        {/* Cabecera del Menú Móvil */}
+        <div className="mobile-drawer-header">
+          <div className="mobile-drawer-brand">
+            <img src="/assets/logo_original.jpg" alt="Logo" className="mobile-drawer-logo" />
+            <div>
+              <div className="mobile-drawer-title">bites<span>saludable</span></div>
+              <div className="mobile-drawer-subtitle">Menú de Navegación</div>
+            </div>
+          </div>
+          <button 
+            onClick={() => setMobileMenuOpen(false)} 
+            className="mobile-drawer-close"
+            aria-label="Cerrar menú"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Links de Navegación Móvil */}
+        <div className="mobile-drawer-body">
+          <div className="mobile-drawer-nav">
+            {navLinks.map((item, idx) => {
+              const IconComp = item.icon;
+              return (
+                <a 
+                  key={idx} 
+                  href={item.href} 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mobile-nav-link"
+                >
+                  <div className="mobile-nav-icon">
+                    <IconComp size={18} color="var(--color-primary)" />
+                  </div>
+                  <span className="mobile-nav-text">{item.label}</span>
+                  <ChevronRight size={16} className="mobile-nav-arrow" />
+                </a>
+              );
+            })}
+          </div>
+
+          {/* Tarjeta de Administración Móvil */}
+          <div className="mobile-drawer-admin-box">
+            <div className="mobile-admin-badge">
+              <Sparkles size={13} /> Gestión de Catálogo
+            </div>
             {isAdminLoggedIn ? (
               <button
                 onClick={() => { setMobileMenuOpen(false); onOpenAdminPanel(); }}
-                className="mobile-admin-btn logged-in"
+                className="mobile-admin-act-btn logged-in"
               >
-                <Shield size={18} /> Panel de Administración
+                <Shield size={18} /> Abrir Panel Admin
               </button>
             ) : (
               <button
                 onClick={() => { setMobileMenuOpen(false); onOpenAdminLogin(); }}
-                className="mobile-admin-btn logged-out"
+                className="mobile-admin-act-btn logged-out"
               >
-                <Lock size={18} /> Ingresar como Administrador
+                <Lock size={18} /> Acceso Administrador
               </button>
             )}
           </div>
         </div>
-      )}
+
+        {/* Pie del Menú Móvil */}
+        <div className="mobile-drawer-footer">
+          <MapPin size={14} color="var(--color-primary)" />
+          <span>Santa Rosa, La Pampa • Menú Fresco Diario</span>
+        </div>
+      </div>
 
       <style>{`
         .navbar-header {
@@ -284,68 +355,246 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 0.35rem;
+          padding: 0.45rem;
           color: var(--text-dark);
-          border-radius: var(--radius-sm);
-          background: none;
-          border: none;
+          border-radius: var(--radius-full);
+          background: rgba(30, 130, 134, 0.08);
+          border: 1px solid var(--border-light);
           cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .mobile-toggle:hover, .mobile-toggle:active {
+          background: rgba(30, 130, 134, 0.15);
+          color: var(--color-primary-dark);
         }
 
         .cart-btn-label, .admin-btn-label {
           display: none;
         }
 
-        .mobile-drawer-menu {
+        /* Backdrop Overlay para Menú Móvil */
+        .mobile-menu-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 20, 0.55);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          z-index: 1040;
+          animation: fadeIn 0.25s ease;
+        }
+
+        /* Drawer Desplegable Móvil Lateral */
+        .mobile-drawer {
+          position: fixed;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 85%;
+          max-width: 320px;
+          background: #ffffff;
+          z-index: 1050;
+          display: flex;
+          flex-direction: column;
+          box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+          transform: translateX(100%);
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .mobile-drawer.open {
+          transform: translateX(0);
+        }
+
+        /* Header del Drawer */
+        .mobile-drawer-header {
+          padding: 1.25rem 1.25rem 1rem 1.25rem;
           background: var(--bg-cream);
           border-bottom: 1px solid var(--border-light);
-          padding: 1.25rem 1.5rem;
           display: flex;
-          flexDirection: column;
-          gap: 0.85rem;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-          animation: fadeIn 0.2s ease;
+          align-items: center;
+          justify-content: space-between;
         }
 
-        .mobile-drawer-menu a {
-          font-size: 1.05rem;
-          font-weight: 600;
+        .mobile-drawer-brand {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+        }
+
+        .mobile-drawer-logo {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid var(--color-primary-light);
+        }
+
+        .mobile-drawer-title {
+          font-family: var(--font-heading);
+          font-weight: 800;
+          font-size: 1.1rem;
           color: var(--text-dark);
-          padding: 0.3rem 0;
+          line-height: 1;
         }
 
-        .mobile-drawer-admin {
-          border-top: 1px solid var(--border-light);
-          padding-top: 0.75rem;
-          margin-top: 0.25rem;
+        .mobile-drawer-title span {
+          color: var(--color-primary);
         }
 
-        .mobile-admin-btn {
-          width: 100%;
-          padding: 0.75rem;
+        .mobile-drawer-subtitle {
+          font-size: 0.7rem;
+          color: var(--text-muted);
+          margin-top: 2px;
+        }
+
+        .mobile-drawer-close {
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.05);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--text-dark);
+          transition: all 0.2s ease;
+          border: none;
+        }
+
+        .mobile-drawer-close:active {
+          background: rgba(239, 68, 68, 0.15);
+          color: #EF4444;
+        }
+
+        /* Body del Drawer */
+        .mobile-drawer-body {
+          flex: 1;
+          overflow-y: auto;
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+
+        .mobile-drawer-nav {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .mobile-nav-link {
+          display: flex;
+          align-items: center;
+          gap: 0.85rem;
+          padding: 0.85rem 1rem;
           border-radius: var(--radius-md);
+          background: var(--bg-cream);
+          color: var(--text-dark);
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 0.95rem;
+          transition: all 0.2s ease;
+          border: 1px solid transparent;
+        }
+
+        .mobile-nav-link:active, .mobile-nav-link:hover {
+          background: #ffffff;
+          border-color: var(--border-light);
+          box-shadow: 0 4px 12px rgba(30, 130, 134, 0.1);
+          transform: translateX(4px);
+        }
+
+        .mobile-nav-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: var(--radius-sm);
+          background: rgba(30, 130, 134, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .mobile-nav-text {
+          flex: 1;
+        }
+
+        .mobile-nav-arrow {
+          color: var(--text-light);
+          transition: transform 0.2s ease;
+        }
+
+        .mobile-nav-link:hover .mobile-nav-arrow {
+          transform: translateX(3px);
+          color: var(--color-primary);
+        }
+
+        /* Sección Admin del Drawer */
+        .mobile-drawer-admin-box {
+          margin-top: auto;
+          background: linear-gradient(135deg, rgba(30, 130, 134, 0.06) 0%, rgba(42, 82, 53, 0.06) 100%);
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-md);
+          padding: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .mobile-admin-badge {
+          font-size: 0.75rem;
           font-weight: 700;
+          color: var(--color-primary-dark);
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+        }
+
+        .mobile-admin-act-btn {
+          width: 100%;
+          padding: 0.75rem 1rem;
+          border-radius: var(--radius-full);
+          font-weight: 700;
+          font-size: 0.875rem;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          font-size: 0.9rem;
           border: none;
-          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
         }
 
-        .mobile-admin-btn.logged-in {
-          background: #10B981;
+        .mobile-admin-act-btn.logged-in {
+          background: linear-gradient(135deg, #065F46 0%, #10B981 100%);
           color: #ffffff;
         }
 
-        .mobile-admin-btn.logged-out {
+        .mobile-admin-act-btn.logged-out {
           background: #ffffff;
           color: var(--text-dark);
           border: 1px solid var(--border-light);
         }
 
-        /* Responsive Breakpoints */
+        /* Footer del Drawer */
+        .mobile-drawer-footer {
+          padding: 1rem 1.25rem;
+          border-top: 1px solid var(--border-light);
+          background: var(--bg-cream);
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          justify-content: center;
+          text-align: center;
+        }
+
+        /* Breakpoints Responsivos */
         @media (min-width: 480px) {
           .navbar-logo-img {
             width: 42px;
@@ -367,6 +616,12 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
             display: flex !important;
           }
           .mobile-toggle {
+            display: none !important;
+          }
+          .mobile-drawer {
+            display: none !important;
+          }
+          .mobile-menu-overlay {
             display: none !important;
           }
           .admin-btn-label {
