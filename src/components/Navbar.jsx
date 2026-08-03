@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { ShoppingBag, Menu, X, Leaf, Shield, Lock, Home, Utensils, BookOpen, Users, ChevronRight, MapPin, Sparkles } from 'lucide-react';
 
 export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenAdminLogin, onOpenAdminPanel }) {
@@ -33,161 +34,169 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
   ];
 
   return (
-    <header className={`navbar-header ${isScrolled ? 'scrolled' : ''}`}>
-      <div className="container navbar-container">
-        {/* Brand Logo & Title */}
-        <a href="#hero" className="navbar-brand">
-          <img 
-            src="/assets/logo_original.jpg" 
-            alt="bitessaludable logo" 
-            className="navbar-logo-img"
-          />
-          <div className="navbar-brand-text">
-            <div className="navbar-brand-title">
-              bites<span>saludable</span>
+    <>
+      <header className={`navbar-header ${isScrolled ? 'scrolled' : ''}`}>
+        <div className="container navbar-container">
+          {/* Brand Logo & Title */}
+          <a href="#hero" className="navbar-brand">
+            <img 
+              src="/assets/logo_original.jpg" 
+              alt="bitessaludable logo" 
+              className="navbar-logo-img"
+            />
+            <div className="navbar-brand-text">
+              <div className="navbar-brand-title">
+                bites<span>saludable</span>
+              </div>
+              <div className="navbar-brand-sub">
+                <Leaf size={10} color="var(--color-secondary-light)" /> Alimentación Consciente
+              </div>
             </div>
-            <div className="navbar-brand-sub">
-              <Leaf size={10} color="var(--color-secondary-light)" /> Alimentación Consciente
-            </div>
-          </div>
-        </a>
+          </a>
 
-        {/* Desktop Navigation Links */}
-        <nav className="desktop-nav">
-          <a href="#hero" className="nav-link">Inicio</a>
-          <a href="#productos" className="nav-link">Productos</a>
-          <a href="#historia" className="nav-link">Nuestra Historia</a>
-          <a href="#creadoras" className="nav-link">Las Creadoras</a>
-        </nav>
+          {/* Desktop Navigation Links */}
+          <nav className="desktop-nav">
+            <a href="#hero" className="nav-link">Inicio</a>
+            <a href="#productos" className="nav-link">Productos</a>
+            <a href="#historia" className="nav-link">Nuestra Historia</a>
+            <a href="#creadoras" className="nav-link">Las Creadoras</a>
+          </nav>
 
-        {/* Action Controls */}
-        <div className="navbar-actions">
-          {/* Admin Access Button */}
-          {isAdminLoggedIn ? (
-            <button
-              onClick={onOpenAdminPanel}
-              className="admin-btn logged-in"
-              title="Abrir Panel de Administración"
-            >
-              <Shield size={16} />
-              <span className="admin-btn-label">Panel Admin</span>
-            </button>
-          ) : (
-            <button
-              onClick={onOpenAdminLogin}
-              className="admin-btn logged-out"
-              title="Ingresar como Administrador"
-            >
-              <Lock size={15} color="var(--color-primary)" />
-              <span className="admin-btn-label">Admin</span>
-            </button>
-          )}
-
-          {/* Cart Button */}
-          <button 
-            onClick={onOpenCart}
-            className="cart-btn"
-            aria-label="Ver Carrito de Compras"
-          >
-            <ShoppingBag size={18} />
-            <span className="cart-btn-label">Pedido</span>
-            {cartCount > 0 && (
-              <span className="cart-count-badge">
-                {cartCount}
-              </span>
-            )}
-          </button>
-
-          {/* Mobile Hamburger Toggle */}
-          <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="mobile-toggle"
-            aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Overlay Oscuro para Menú Móvil */}
-      {mobileMenuOpen && (
-        <div 
-          className="mobile-menu-overlay" 
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Menú Desplegable Lateral Móvil */}
-      <div className={`mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}>
-        {/* Cabecera del Menú Móvil */}
-        <div className="mobile-drawer-header">
-          <div className="mobile-drawer-brand">
-            <img src="/assets/logo_original.jpg" alt="Logo" className="mobile-drawer-logo" />
-            <div>
-              <div className="mobile-drawer-title">bites<span>saludable</span></div>
-              <div className="mobile-drawer-subtitle">Menú de Navegación</div>
-            </div>
-          </div>
-          <button 
-            onClick={() => setMobileMenuOpen(false)} 
-            className="mobile-drawer-close"
-            aria-label="Cerrar menú"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Links de Navegación Móvil */}
-        <div className="mobile-drawer-body">
-          <div className="mobile-drawer-nav">
-            {navLinks.map((item, idx) => {
-              const IconComp = item.icon;
-              return (
-                <a 
-                  key={idx} 
-                  href={item.href} 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="mobile-nav-link"
-                >
-                  <div className="mobile-nav-icon">
-                    <IconComp size={18} color="var(--color-primary)" />
-                  </div>
-                  <span className="mobile-nav-text">{item.label}</span>
-                  <ChevronRight size={16} className="mobile-nav-arrow" />
-                </a>
-              );
-            })}
-          </div>
-
-          {/* Tarjeta de Administración Móvil */}
-          <div className="mobile-drawer-admin-box">
-            <div className="mobile-admin-badge">
-              <Sparkles size={13} /> Gestión de Catálogo
-            </div>
+          {/* Action Controls */}
+          <div className="navbar-actions">
+            {/* Admin Access Button */}
             {isAdminLoggedIn ? (
               <button
-                onClick={() => { setMobileMenuOpen(false); onOpenAdminPanel(); }}
-                className="mobile-admin-act-btn logged-in"
+                onClick={onOpenAdminPanel}
+                className="admin-btn logged-in"
+                title="Abrir Panel de Administración"
               >
-                <Shield size={18} /> Abrir Panel Admin
+                <Shield size={16} />
+                <span className="admin-btn-label">Panel Admin</span>
               </button>
             ) : (
               <button
-                onClick={() => { setMobileMenuOpen(false); onOpenAdminLogin(); }}
-                className="mobile-admin-act-btn logged-out"
+                onClick={onOpenAdminLogin}
+                className="admin-btn logged-out"
+                title="Ingresar como Administrador"
               >
-                <Lock size={18} /> Acceso Administrador
+                <Lock size={15} color="var(--color-primary)" />
+                <span className="admin-btn-label">Admin</span>
               </button>
             )}
+
+            {/* Cart Button */}
+            <button 
+              onClick={onOpenCart}
+              className="cart-btn"
+              aria-label="Ver Carrito de Compras"
+            >
+              <ShoppingBag size={18} />
+              <span className="cart-btn-label">Pedido</span>
+              {cartCount > 0 && (
+                <span className="cart-count-badge">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="mobile-toggle"
+              aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
         </div>
+      </header>
 
-        {/* Pie del Menú Móvil */}
-        <div className="mobile-drawer-footer">
-          <MapPin size={14} color="var(--color-primary)" />
-          <span>Santa Rosa, La Pampa • Menú Fresco Diario</span>
-        </div>
-      </div>
+      {/* Renderizado mediante Portal en document.body para evitar trampas de z-index y backdrop-filter */}
+      {typeof document !== 'undefined' && ReactDOM.createPortal(
+        <>
+          {/* Overlay Oscuro con Blur */}
+          {mobileMenuOpen && (
+            <div 
+              className="mobile-menu-overlay" 
+              onClick={() => setMobileMenuOpen(false)}
+            />
+          )}
+
+          {/* Menú Desplegable Lateral Móvil */}
+          <div className={`mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}>
+            {/* Cabecera del Menú Móvil */}
+            <div className="mobile-drawer-header">
+              <div className="mobile-drawer-brand">
+                <img src="/assets/logo_original.jpg" alt="Logo" className="mobile-drawer-logo" />
+                <div>
+                  <div className="mobile-drawer-title">bites<span>saludable</span></div>
+                  <div className="mobile-drawer-subtitle">Menú de Navegación</div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setMobileMenuOpen(false)} 
+                className="mobile-drawer-close"
+                aria-label="Cerrar menú"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Links de Navegación Móvil */}
+            <div className="mobile-drawer-body">
+              <div className="mobile-drawer-nav">
+                {navLinks.map((item, idx) => {
+                  const IconComp = item.icon;
+                  return (
+                    <a 
+                      key={idx} 
+                      href={item.href} 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="mobile-nav-link"
+                    >
+                      <div className="mobile-nav-icon">
+                        <IconComp size={18} color="var(--color-primary)" />
+                      </div>
+                      <span className="mobile-nav-text">{item.label}</span>
+                      <ChevronRight size={16} className="mobile-nav-arrow" />
+                    </a>
+                  );
+                })}
+              </div>
+
+              {/* Tarjeta de Administración Móvil */}
+              <div className="mobile-drawer-admin-box">
+                <div className="mobile-admin-badge">
+                  <Sparkles size={13} /> Gestión de Catálogo
+                </div>
+                {isAdminLoggedIn ? (
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); onOpenAdminPanel(); }}
+                    className="mobile-admin-act-btn logged-in"
+                  >
+                    <Shield size={18} /> Abrir Panel Admin
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); onOpenAdminLogin(); }}
+                    className="mobile-admin-act-btn logged-out"
+                  >
+                    <Lock size={18} /> Acceso Administrador
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Pie del Menú Móvil */}
+            <div className="mobile-drawer-footer">
+              <MapPin size={14} color="var(--color-primary)" />
+              <span>Santa Rosa, La Pampa • Menú Fresco Diario</span>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
 
       <style>{`
         .navbar-header {
@@ -373,17 +382,14 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
           display: none;
         }
 
-        /* Backdrop Overlay para Menú Móvil */
+        /* Backdrop Overlay para Menú Móvil (Renderizado fuera en document.body) */
         .mobile-menu-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(15, 23, 20, 0.55);
+          inset: 0;
+          background: rgba(15, 23, 20, 0.6);
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
-          z-index: 1040;
+          z-index: 99999;
           animation: fadeIn 0.25s ease;
         }
 
@@ -396,10 +402,10 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
           width: 85%;
           max-width: 320px;
           background: #ffffff;
-          z-index: 1050;
+          z-index: 100000;
           display: flex;
           flex-direction: column;
-          box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+          box-shadow: -8px 0 30px rgba(0, 0, 0, 0.2);
           transform: translateX(100%);
           transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -611,7 +617,7 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
           }
         }
 
-        @media (min-width: 768px) {
+        @media (min-width: 860px) {
           .desktop-nav {
             display: flex !important;
           }
@@ -645,6 +651,6 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
           }
         }
       `}</style>
-    </header>
+    </>
   );
 }
