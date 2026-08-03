@@ -1,10 +1,16 @@
-// Helper para inyectar encabezados de seguridad HTTP en cualquier respuesta
-function addSecurityHeaders(response) {
+// Helper para inyectar encabezados de seguridad HTTP y caché inmutable de activos en cualquier respuesta
+function addSecurityHeaders(response, requestUrl = '') {
   const newHeaders = new Headers(response.headers);
   newHeaders.set('X-Frame-Options', 'DENY');
   newHeaders.set('X-Content-Type-Options', 'nosniff');
   newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   newHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  // Optimización LCP & WPO: Caché agresiva inmutable (1 año) para imágenes y activos estáticos
+  if (requestUrl.includes('/assets/') || /\.(jpg|jpeg|png|webp|svg|css|js|woff2)$/i.test(requestUrl)) {
+    newHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -101,12 +107,12 @@ export default {
       }
     }
 
-    // Para todas las demás peticiones, servir los recursos estáticos web generados en Vite con encabezados de seguridad
+    // Para todas las demás peticiones, servir los recursos estáticos web generados en Vite con encabezados de seguridad y caché
     if (env.ASSETS) {
       const assetResponse = await env.ASSETS.fetch(request);
-      return addSecurityHeaders(assetResponse);
+      return addSecurityHeaders(assetResponse, request.url);
     }
 
-    return addSecurityHeaders(new Response('Bitessaludable Asset Server', { status: 200 }));
+    return addSecurityHeaders(new Response('Bitessaludable Asset Server', { status: 200 }), request.url);
   }
 };

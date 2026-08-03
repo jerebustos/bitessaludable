@@ -16,14 +16,20 @@ export default function Hero() {
         overflow: 'hidden'
       }}
     >
-      {/* High Quality Hero Background Image */}
-      <div 
+      {/* High Quality Hero LCP Background Image */}
+      <img 
+        src="/assets/hero_bg.jpg" 
+        alt="bitessaludable comida real y viandas en Santa Rosa La Pampa"
+        fetchPriority="high"
+        loading="eager"
+        decoding="sync"
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: `url('/assets/hero_bg.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center',
           zIndex: 1,
           filter: 'brightness(0.9)'
         }}
