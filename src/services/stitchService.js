@@ -111,10 +111,18 @@ class StitchService {
   // Sincronización automática con la base de datos de la nube
   async syncWithCloud() {
     try {
-      const response = await fetch(this.cloudEndpoint, {
+      let response = await fetch(this.cloudEndpoint, {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       });
+
+      if (!response.ok) {
+        // Respaldo directo a la API en producción si estamos en localhost
+        response = await fetch('https://bitessaludable.com.ar/api/products', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+      }
 
       if (!response.ok) return;
 
@@ -133,9 +141,9 @@ class StitchService {
         this.productsCache = merged;
         this._saveLocalProductsOnly(merged);
         this.notifyListeners(this.productsCache);
-        console.log('☁️ Sincronización exitosa con la nube. Productos cargados:', merged.length);
+        console.log('☁️ Sincronización exitosa con la nube Cloudflare KV. Productos cargados:', merged.length);
       } else if (this.productsCache && this.productsCache.length > 0) {
-        // Si la nube está vacía pero tenemos productos locales (creados por admin), subirlos a la nube
+        // Si la nube está vacía pero tenemos productos locales, subirlos a la nube
         await this._postProductsToCloud(this.productsCache);
       }
     } catch (err) {
@@ -210,7 +218,7 @@ class StitchService {
 
   async _postProductsToCloud(products) {
     try {
-      const response = await fetch(this.cloudEndpoint, {
+      let response = await fetch(this.cloudEndpoint, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -218,6 +226,18 @@ class StitchService {
         },
         body: JSON.stringify({ products })
       });
+
+      if (!response.ok) {
+        response = await fetch('https://bitessaludable.com.ar/api/products', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Admin-Token': 'bitessaludable-admin-token-2026'
+          },
+          body: JSON.stringify({ products })
+        });
+      }
+
       if (response.ok) {
         console.log('☁️ Catálogo guardado permanentemente en Cloudflare KV.');
       }
