@@ -57,7 +57,9 @@ export default function Founders() {
               >
                 <img 
                   src={founder.photo} 
-                  alt={founder.name}
+                  alt={`${founder.name} - Fundadoras de bitessaludable en Santa Rosa La Pampa`}
+                  loading="lazy"
+                  decoding="async"
                   className="founders-img"
                   style={{ 
                     width: '100%', 

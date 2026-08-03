@@ -105,6 +105,8 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="mobile-toggle"
               aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-drawer"
             >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>

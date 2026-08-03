@@ -1,0 +1,18 @@
+{
+  "short_name": "bitessaludable",
+  "name": "bitessaludable - Alimentación Consciente",
+  "icons": [
+    {
+      "src": "/assets/logo_original.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FAF7F2",
+  "theme_color": "#1E8286",
+  "display": "standalone",
+  "orientation": "portrait",
+  "description": "Menú saludable, viandas, snacks fit y pastelería artesanal en Santa Rosa, La Pampa."
+}

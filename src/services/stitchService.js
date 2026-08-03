@@ -212,7 +212,10 @@ class StitchService {
     try {
       const response = await fetch(this.cloudEndpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Admin-Token': 'bitessaludable-admin-token-2026'
+        },
         body: JSON.stringify({ products })
       });
       if (response.ok) {

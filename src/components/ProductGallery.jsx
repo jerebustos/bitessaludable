@@ -172,7 +172,9 @@ export default function ProductGallery({ onAddToCart, isAdminLoggedIn, onOpenAdm
                 <div style={{ position: 'relative', height: '220px', width: '100%', overflow: 'hidden' }}>
                   <img 
                     src={product.image} 
-                    alt={product.title}
+                    alt={`${product.title} - bitessaludable Santa Rosa La Pampa`}
+                    loading="lazy"
+                    decoding="async"
                     style={{
                       width: '100%',
                       height: '100%',

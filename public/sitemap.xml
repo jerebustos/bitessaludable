@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Página Principal -->
+  <url>
+    <loc>https://bitessaludable.com.ar/</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://bitessaludable.com.ar/assets/logo_original.jpg</image:loc>
+      <image:title>bitessaludable - Alimentación Consciente en Santa Rosa, La Pampa</image:title>
+    </image:image>
+  </url>
+
+  <!-- Sección de Productos -->
+  <url>
+    <loc>https://bitessaludable.com.ar/#productos</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Sección Nuestra Historia -->
+  <url>
+    <loc>https://bitessaludable.com.ar/#historia</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Sección Las Creadoras -->
+  <url>
+    <loc>https://bitessaludable.com.ar/#creadoras</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+</urlset>

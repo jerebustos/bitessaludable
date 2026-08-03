@@ -1,3 +1,17 @@
+// Helper para inyectar encabezados de seguridad HTTP en cualquier respuesta
+function addSecurityHeaders(response) {
+  const newHeaders = new Headers(response.headers);
+  newHeaders.set('X-Frame-Options', 'DENY');
+  newHeaders.set('X-Content-Type-Options', 'nosniff');
+  newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  newHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -7,8 +21,11 @@ export default {
       const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Content-Type': 'application/json; charset=utf-8'
+        'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
+        'Content-Type': 'application/json; charset=utf-8',
+        'X-Frame-Options': 'DENY',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
       };
 
       // Peticiones preflight CORS
@@ -47,6 +64,17 @@ export default {
       // Guardar y actualizar permanentemente el catálogo de productos en la nube
       if (request.method === 'POST') {
         try {
+          // Verificar autenticación mediante cabecera X-Admin-Token
+          const adminToken = request.headers.get('X-Admin-Token');
+          const expectedToken = env.ADMIN_SECRET_TOKEN || 'bitessaludable-admin-token-2026';
+          
+          if (adminToken !== expectedToken) {
+            return new Response(JSON.stringify({ error: 'Acceso no autorizado. Token de administración inválido.' }), {
+              status: 401,
+              headers: corsHeaders
+            });
+          }
+
           const body = await request.json();
           if (!body || !Array.isArray(body.products)) {
             return new Response(JSON.stringify({ error: 'Formato de productos inválido. Debe ser una lista.' }), {
@@ -73,11 +101,12 @@ export default {
       }
     }
 
-    // Para todas las demás peticiones, servir los recursos estáticos web generados en Vite (dist)
+    // Para todas las demás peticiones, servir los recursos estáticos web generados en Vite con encabezados de seguridad
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
+      const assetResponse = await env.ASSETS.fetch(request);
+      return addSecurityHeaders(assetResponse);
     }
 
-    return new Response('Bitessaludable Asset Server', { status: 200 });
+    return addSecurityHeaders(new Response('Bitessaludable Asset Server', { status: 200 }));
   }
 };
