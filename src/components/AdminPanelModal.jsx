@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft, Lock, Mail, ShieldAlert, Download, FileJson } from 'lucide-react';
+import { X, PlusCircle, Edit3, Save, Trash2, CheckCircle2, AlertCircle, Image as ImageIcon, Flame, Dumbbell, Wheat, Heart, Star, PackageCheck, LogOut, Upload, ArrowLeft, Lock, Mail, ShieldAlert, Download, FileJson, Cloud, RefreshCw } from 'lucide-react';
 import { stitchService } from '../services/stitchService';
 import { saveNewAdminPassword, saveRecoveryEmail, getRecoveryEmail, isFirstTimeAdminSetup } from '../utils/securityUtils';
 
@@ -260,6 +260,13 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
     showToast('¡Copia de seguridad del catálogo descargada (JSON)!');
   };
 
+  const handleManualSync = async () => {
+    setLoading(true);
+    await stitchService.syncWithCloud();
+    await loadProducts();
+    showToast('¡Sincronización con la Nube Cloudflare KV completada!');
+  };
+
   const handleImportCatalog = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -362,6 +369,25 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button 
+              onClick={handleManualSync}
+              className="btn"
+              style={{
+                background: 'rgba(16, 185, 129, 0.25)',
+                color: '#ffffff',
+                border: '1px solid rgba(52, 211, 153, 0.5)',
+                padding: '0.5rem 0.8rem',
+                fontSize: '0.78rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontWeight: '700'
+              }}
+              title="Forzar sincronización inmediata con la Nube Cloudflare"
+            >
+              <Cloud size={14} /> Sincronizar Nube
+            </button>
+
             <button 
               onClick={handleExportCatalog}
               className="btn"

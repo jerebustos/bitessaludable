@@ -1,18 +1,18 @@
 /**
- * Stitch Backend Configuration & Connection Credentials
- * Configura la app ID de Stitch / MongoDB App Services
+ * Stitch Backend & Cloud Storage Configuration
+ * Configura la sincronización remota en la nube para Bitessaludable (Cloudflare KV Cloud Sync)
  */
 
 export const STITCH_CONFIG = {
   appId: 'bitessaludable-app-xyz',
-  clusterName: 'mongodb-atlas',
+  clusterName: 'cloudflare-kv-cluster',
   dbName: 'bitessaludable_db',
   collections: {
     products: 'products',
     founders: 'founders',
     orders: 'orders'
   },
-  // Habilitar simulación local si no hay credenciales de servidor en vivo
-  offlineMockMode: true,
-  syncIntervalMs: 5000
+  cloudActive: true,
+  cloudEndpoint: '/api/products',
+  syncIntervalMs: 10000
 };

@@ -2,10 +2,18 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bitessaludable",
   "compatibility_date": "2026-07-24",
+  "main": "src/worker.js",
   "workers_dev": true,
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "binding": "ASSETS"
   },
+  "kv_namespaces": [
+    {
+      "binding": "PRODUCTS_KV",
+      "id": "04556f38e6ba4ad38f924338fec52095"
+    }
+  ],
   "routes": [
     { "pattern": "bitessaludable.com.ar", "custom_domain": true },
     { "pattern": "www.bitessaludable.com.ar", "custom_domain": true }

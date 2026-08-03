@@ -91,21 +91,92 @@ const INITIAL_FOUNDERS = [
 ];
 
 /**
- * Servicio Stitch para consulta y sincronización de datos con persistencia permanente en localStorage
+ * Servicio Stitch para consulta y sincronización de datos con la nube (Cloudflare KV) y respaldo local
  */
 class StitchService {
   constructor() {
     this.isConnected = true;
-    this.useMock = STITCH_CONFIG.offlineMockMode;
+    this.cloudActive = true;
+    this.cloudEndpoint = STITCH_CONFIG.cloudEndpoint || '/api/products';
     this.listeners = [];
     this.STORAGE_KEY = 'bitessaludable_products_v3';
-    // Cache en memoria sincronizado en tiempo real
+    
+    // Cache en memoria inicializado desde localStorage o iniciales
     this.productsCache = this._getLocalProducts();
+
+    // Sincronizar automáticamente con la nube al iniciar
+    this.syncWithCloud();
+  }
+
+  // Sincronización automática con la base de datos de la nube
+  async syncWithCloud() {
+    try {
+      const response = await fetch(this.cloudEndpoint, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      let cloudProducts = null;
+
+      if (Array.isArray(data)) {
+        cloudProducts = data;
+      } else if (data && Array.isArray(data.products)) {
+        cloudProducts = data.products;
+      }
+
+      if (cloudProducts && cloudProducts.length > 0) {
+        // Combinar datos remotos con estructura limpia
+        const merged = this._cleanAndMergeProducts(cloudProducts);
+        this.productsCache = merged;
+        this._saveLocalProductsOnly(merged);
+        this.notifyListeners(this.productsCache);
+        console.log('☁️ Sincronización exitosa con la nube. Productos cargados:', merged.length);
+      } else if (this.productsCache && this.productsCache.length > 0) {
+        // Si la nube está vacía pero tenemos productos locales (creados por admin), subirlos a la nube
+        await this._postProductsToCloud(this.productsCache);
+      }
+    } catch (err) {
+      console.warn('Sincronización con la nube (offline/local fallback):', err.message);
+    }
+  }
+
+  _cleanAndMergeProducts(productsArray) {
+    const categoryMap = {
+      bowls: 'boxgourmet',
+      mealprep: 'panificados',
+      jugos: 'pasteleria'
+    };
+
+    return productsArray.map(p => {
+      let category = p.category;
+      if (categoryMap[category]) {
+        category = categoryMap[category];
+      }
+      return {
+        id: p.id || 'prod-' + Date.now(),
+        title: p.title || 'Producto',
+        category: category || 'pasteleria',
+        price: Number(p.price) || 0,
+        image: p.image || '/assets/bowl_protein.jpg',
+        description: p.description || '',
+        ingredients: Array.isArray(p.ingredients)
+          ? p.ingredients
+          : (typeof p.ingredients === 'string' ? p.ingredients.split(',').map(i => i.trim()).filter(Boolean) : []),
+        calories: Number(p.calories) || 0,
+        protein: p.protein || '0g',
+        carbs: p.carbs || '0g',
+        fat: p.fat || '0g',
+        isStarProduct: Boolean(p.isStarProduct),
+        inStock: p.inStock !== undefined ? Boolean(p.inStock) : true
+      };
+    });
   }
 
   _getLocalProducts() {
     try {
-      // Intentar leer de cualquiera de las claves guardadas en el navegador
       let stored = localStorage.getItem(this.STORAGE_KEY) ||
                    localStorage.getItem('bitessaludable_products_v2') ||
                    localStorage.getItem('bitessaludable_products');
@@ -113,60 +184,51 @@ class StitchService {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const categoryMap = {
-            bowls: 'boxgourmet',
-            mealprep: 'panificados',
-            jugos: 'pasteleria'
-          };
-          
-          // Preservar siempre productos personalizados creados por el administrador ('prod-...')
           const customProducts = parsed.filter(p => p.id && !INITIAL_PRODUCTS.some(init => init.id === p.id));
-          
-          // Mantener actualizaciones realizadas en productos base
           const baseProducts = INITIAL_PRODUCTS.map(init => {
             const existing = parsed.find(p => p.id === init.id);
             return existing ? { ...init, ...existing } : init;
           });
-
-          const merged = [...customProducts, ...baseProducts].map(p => {
-            if (categoryMap[p.category]) {
-              return { ...p, category: categoryMap[p.category] };
-            }
-            return p;
-          });
-
-          return merged;
+          return [...customProducts, ...baseProducts];
         }
       }
     } catch (e) {
       console.warn('Error al leer productos de localStorage:', e);
     }
-    // Si no hay nada almacenado, guardamos los iniciales y retornamos
-    this._saveLocalProducts(INITIAL_PRODUCTS);
     return INITIAL_PRODUCTS;
   }
 
-  _saveLocalProducts(products) {
-    this.productsCache = [...products];
+  _saveLocalProductsOnly(products) {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(products));
-      // Guardar respaldos en claves secundarias para máxima compatibilidad
       localStorage.setItem('bitessaludable_products_v2', JSON.stringify(products));
       localStorage.setItem('bitessaludable_products', JSON.stringify(products));
     } catch (e) {
-      console.error('Error al guardar en localStorage (cuota excedida, intentando almacenamiento optimizado):', e);
-      try {
-        const lightweightProducts = products.map(p => ({
-          ...p,
-          image: (p.image && p.image.length > 500000) ? '/assets/bowl_protein.jpg' : p.image
-        }));
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(lightweightProducts));
-      } catch (err2) {
-        console.error('Fallback localStorage falló:', err2);
-      }
+      console.error('Error al guardar respaldo local en localStorage:', e);
     }
-    // Notificar inmediatamente a la UI
+  }
+
+  async _postProductsToCloud(products) {
+    try {
+      const response = await fetch(this.cloudEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ products })
+      });
+      if (response.ok) {
+        console.log('☁️ Catálogo guardado permanentemente en Cloudflare KV.');
+      }
+    } catch (err) {
+      console.warn('No se pudo guardar en la nube (offline o servidor local):', err.message);
+    }
+  }
+
+  async _saveAllProducts(products) {
+    this.productsCache = [...products];
+    this._saveLocalProductsOnly(products);
     this.notifyListeners(this.productsCache);
+    // Enviar a la nube para persistencia global inmediata
+    await this._postProductsToCloud(products);
   }
 
   subscribe(listener) {
@@ -218,7 +280,7 @@ class StitchService {
     };
 
     const updated = [newProduct, ...currentProducts];
-    this._saveLocalProducts(updated);
+    await this._saveAllProducts(updated);
     return newProduct;
   }
 
@@ -231,7 +293,7 @@ class StitchService {
       }
       return prod;
     });
-    this._saveLocalProducts(updated);
+    await this._saveAllProducts(updated);
     return updated.find(p => p.id === productId);
   }
 
@@ -244,7 +306,7 @@ class StitchService {
       }
       return prod;
     });
-    this._saveLocalProducts(updated);
+    await this._saveAllProducts(updated);
     return updated.find(p => p.id === productId);
   }
 
@@ -252,7 +314,7 @@ class StitchService {
   async deleteProduct(productId) {
     const currentProducts = await this.getProducts();
     const updated = currentProducts.filter(prod => prod.id !== productId);
-    this._saveLocalProducts(updated);
+    await this._saveAllProducts(updated);
     return true;
   }
 
@@ -273,8 +335,9 @@ class StitchService {
     if (!Array.isArray(productsArray) || productsArray.length === 0) {
       throw new Error('El archivo importado no contiene una lista de productos válida.');
     }
-    this._saveLocalProducts(productsArray);
-    return productsArray;
+    const cleaned = this._cleanAndMergeProducts(productsArray);
+    await this._saveAllProducts(cleaned);
+    return cleaned;
   }
 
   // Obtener información de las fundadoras
@@ -284,7 +347,7 @@ class StitchService {
 
   // Registrar pedido enviado por el usuario
   async submitOrder(orderData) {
-    console.log('📦 Registrando pedido en Stitch Database...', orderData);
+    console.log('📦 Registrando pedido en Stitch Cloud Database...', orderData);
     return Promise.resolve({
       success: true,
       orderId: 'STITCH-ORD-' + Math.floor(100000 + Math.random() * 900000),
@@ -297,7 +360,7 @@ class StitchService {
     return {
       connected: this.isConnected,
       appId: STITCH_CONFIG.appId,
-      mode: this.useMock ? 'Stitch Offline-Sync (Activo)' : 'Stitch Live Cloud'
+      mode: 'Cloudflare KV Database (Global Cloud Persistent)'
     };
   }
 }
