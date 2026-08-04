@@ -1,7 +1,65 @@
-import React from 'react';
-import { ArrowRight, Sparkles, Heart, ShieldCheck, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, Sparkles, Heart, ShieldCheck, Clock, Edit3, X, Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { stitchService } from '../services/stitchService';
 
-export default function Hero() {
+export default function Hero({ isAdminLoggedIn }) {
+  const [heroData, setHeroData] = useState({
+    title: 'Nutrición Consciente que Nutre tu Cuerpo y Alegra tu Día',
+    description: 'En bitessaludable elaboramos productos nutritivos, alimentos equilibrados y snacks artesanales sin conservantes, hechos con ingredientes frescos de la más alta calidad.',
+    badge: 'Comida Real • 100% Nutritiva & Deliciosa'
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editBadge, setEditBadge] = useState('');
+  const [notification, setNotification] = useState(null);
+
+  useEffect(() => {
+    async function loadHero() {
+      const data = await stitchService.getHeroData();
+      setHeroData(data);
+    }
+    loadHero();
+
+    const unsubscribe = stitchService.subscribeHero((updated) => {
+      setHeroData(updated);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const showToast = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3500);
+  };
+
+  const handleOpenEditModal = () => {
+    setEditTitle(heroData.title || '');
+    setEditDescription(heroData.description || '');
+    setEditBadge(heroData.badge || '');
+    setIsModalOpen(true);
+  };
+
+  const handleSaveHero = async () => {
+    if (!editTitle || !editDescription) {
+      showToast('Por favor completa el título y la descripción.', 'error');
+      return;
+    }
+
+    try {
+      await stitchService.updateHeroData({
+        title: editTitle,
+        description: editDescription,
+        badge: editBadge
+      });
+      showToast('¡Título y descripción de portada actualizados!');
+      setIsModalOpen(false);
+    } catch (err) {
+      showToast('Error al guardar los cambios.', 'error');
+    }
+  };
+
   return (
     <section 
       id="hero"
@@ -16,6 +74,31 @@ export default function Hero() {
         overflow: 'hidden'
       }}
     >
+      {/* Toast Notification Alert */}
+      {notification && (
+        <div style={{
+          position: 'fixed',
+          top: '5rem',
+          right: '1.5rem',
+          zIndex: 3000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.6rem',
+          padding: '0.85rem 1.35rem',
+          borderRadius: 'var(--radius-md)',
+          background: notification.type === 'error' ? '#FEE2E2' : '#D1FAE5',
+          color: notification.type === 'error' ? '#991B1B' : '#065F46',
+          border: `1px solid ${notification.type === 'error' ? '#FCA5A5' : '#6EE7B7'}`,
+          boxShadow: 'var(--shadow-lg)',
+          fontSize: '0.9rem',
+          fontWeight: '700',
+          animation: 'fadeIn 0.25s ease'
+        }}>
+          {notification.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+          <span>{notification.message}</span>
+        </div>
+      )}
+
       {/* High Quality Hero LCP Background Image */}
       <img 
         src="/assets/hero_bg.jpg" 
@@ -46,6 +129,36 @@ export default function Hero() {
       />
 
       <div className="container" style={{ position: 'relative', zIndex: 3, padding: '4rem 1.5rem', textAlign: 'center' }}>
+        
+        {/* Admin Edit Trigger Button */}
+        {isAdminLoggedIn && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            <button
+              onClick={handleOpenEditModal}
+              className="btn btn-primary"
+              style={{
+                background: 'rgba(30, 130, 134, 0.95)',
+                color: '#ffffff',
+                backdropFilter: 'blur(6px)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                padding: '0.65rem 1.35rem',
+                borderRadius: 'var(--radius-full)',
+                fontWeight: '800',
+                fontSize: '0.875rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                border: '1.5px solid rgba(255,255,255,0.4)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease'
+              }}
+              title="Editar título y descripción de la portada (Modo Administrador)"
+            >
+              <Edit3 size={16} /> Modificar Título & Descripción
+            </button>
+          </div>
+        )}
+
         {/* Subtitle / Brand Pills */}
         <div 
           style={{
@@ -66,7 +179,7 @@ export default function Hero() {
           className="animate-fade-in"
         >
           <Sparkles size={16} color="var(--color-primary)" />
-          <span>Comida Real • 100% Nutritiva & Deliciosa</span>
+          <span>{heroData.badge || 'Comida Real • 100% Nutritiva & Deliciosa'}</span>
         </div>
 
         {/* Main Headline */}
@@ -81,7 +194,7 @@ export default function Hero() {
             textShadow: '0 4px 20px rgba(0,0,0,0.3)'
           }}
         >
-          Nutrición Consciente que Nutre tu Cuerpo y Alegra tu Día
+          {heroData.title}
         </h1>
 
         {/* Lead Paragraph */}
@@ -96,7 +209,7 @@ export default function Hero() {
             textShadow: '0 2px 10px rgba(0,0,0,0.4)'
           }}
         >
-          En <strong style={{ color: 'var(--color-peach)', fontWeight: '700' }}>bitessaludable</strong> elaboramos productos nutritivos, alimentos equilibrados y snacks artesanales sin conservantes, hechos con ingredientes frescos de la más alta calidad.
+          {heroData.description}
         </p>
 
         {/* CTA Buttons */}
@@ -150,6 +263,179 @@ export default function Hero() {
           </div>
         </div>
       </div>
+
+      {/* Modal interactivo de Edición para Administrador */}
+      {isModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            background: 'rgba(20, 30, 28, 0.75)',
+            backdropFilter: 'blur(6px)',
+            animation: 'fadeIn 0.2s ease'
+          }}
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: '620px',
+              background: '#ffffff',
+              borderRadius: 'var(--radius-lg)',
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-lg)',
+              border: '1px solid var(--border-light)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div>
+                <span className="badge" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.725rem' }}>
+                  MODO ADMINISTRADOR
+                </span>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', margin: '0.25rem 0 0 0' }}>
+                  Modificar Título & Descripción Principal
+                </h3>
+              </div>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Content Form */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {/* Etiqueta / Badge */}
+              <div>
+                <label style={{ display: 'block', fontWeight: '700', fontSize: '0.875rem', marginBottom: '0.4rem', color: 'var(--text-dark)' }}>
+                  Etiqueta Superior (Badge)
+                </label>
+                <input 
+                  type="text"
+                  value={editBadge}
+                  onChange={(e) => setEditBadge(e.target.value)}
+                  placeholder="Ej: Comida Real • 100% Nutritiva & Deliciosa"
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-light)',
+                    fontSize: '0.9rem'
+                  }}
+                />
+              </div>
+
+              {/* Título Principal */}
+              <div>
+                <label style={{ display: 'block', fontWeight: '700', fontSize: '0.875rem', marginBottom: '0.4rem', color: 'var(--text-dark)' }}>
+                  Título Principal *
+                </label>
+                <textarea 
+                  rows={3}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Nutrición Consciente que Nutre tu Cuerpo y Alegra tu Día"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-light)',
+                    fontSize: '0.95rem',
+                    fontWeight: '700',
+                    fontFamily: 'inherit',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              {/* Descripción / Párrafo */}
+              <div>
+                <label style={{ display: 'block', fontWeight: '700', fontSize: '0.875rem', marginBottom: '0.4rem', color: 'var(--text-dark)' }}>
+                  Descripción / Párrafo Explicativo *
+                </label>
+                <textarea 
+                  rows={4}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="En bitessaludable elaboramos productos nutritivos..."
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-light)',
+                    fontSize: '0.9rem',
+                    fontFamily: 'inherit',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              background: '#f8fafc',
+              borderTop: '1px solid var(--border-light)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '0.75rem'
+            }}>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="btn btn-secondary"
+                style={{ padding: '0.6rem 1.25rem', fontSize: '0.875rem' }}
+              >
+                Cancelar
+              </button>
+
+              <button 
+                onClick={handleSaveHero}
+                className="btn btn-primary"
+                style={{
+                  padding: '0.6rem 1.4rem',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <Save size={16} /> Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

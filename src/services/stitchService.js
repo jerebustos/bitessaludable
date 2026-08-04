@@ -90,6 +90,12 @@ const INITIAL_FOUNDERS = [
   }
 ];
 
+const INITIAL_HERO = {
+  title: 'Nutrición Consciente que Nutre tu Cuerpo y Alegra tu Día',
+  description: 'En bitessaludable elaboramos productos nutritivos, alimentos equilibrados y snacks artesanales sin conservantes, hechos con ingredientes frescos de la más alta calidad.',
+  badge: 'Comida Real • 100% Nutritiva & Deliciosa'
+};
+
 /**
  * Servicio Stitch para consulta y sincronización de datos con la nube (Cloudflare KV) y respaldo local
  */
@@ -100,12 +106,15 @@ class StitchService {
     this.cloudEndpoint = STITCH_CONFIG.cloudEndpoint || '/api/products';
     this.listeners = [];
     this.foundersListeners = [];
+    this.heroListeners = [];
     this.STORAGE_KEY = 'bitessaludable_products_v3';
     this.FOUNDERS_STORAGE_KEY = 'bitessaludable_founders_v1';
+    this.HERO_STORAGE_KEY = 'bitessaludable_hero_v1';
     
     // Cache en memoria inicializado desde localStorage o iniciales
     this.productsCache = this._getLocalProducts();
     this.foundersCache = this._getLocalFounders();
+    this.heroCache = this._getLocalHero();
 
     // Sincronizar automáticamente con la nube al iniciar
     this.syncWithCloud();
@@ -510,6 +519,58 @@ class StitchService {
 
     await this._saveAllFounders(updated);
     return updated.find(f => f.id === targetId);
+  }
+
+  _getLocalHero() {
+    try {
+      let stored = localStorage.getItem(this.HERO_STORAGE_KEY) || localStorage.getItem('bitessaludable_hero');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+          return { ...INITIAL_HERO, ...parsed };
+        }
+      }
+    } catch (e) {
+      console.warn('Error al leer hero de localStorage:', e);
+    }
+    return INITIAL_HERO;
+  }
+
+  _saveLocalHeroOnly(data) {
+    try {
+      localStorage.setItem(this.HERO_STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem('bitessaludable_hero', JSON.stringify(data));
+    } catch (e) {
+      console.error('Error al guardar hero en localStorage:', e);
+    }
+  }
+
+  subscribeHero(listener) {
+    this.heroListeners.push(listener);
+    return () => {
+      this.heroListeners = this.heroListeners.filter(l => l !== listener);
+    };
+  }
+
+  notifyHeroListeners(data) {
+    this.heroListeners.forEach(listener => listener(data));
+  }
+
+  // Obtener datos de la portada (Hero)
+  async getHeroData() {
+    if (!this.heroCache) {
+      this.heroCache = this._getLocalHero();
+    }
+    return Promise.resolve({ ...this.heroCache });
+  }
+
+  // Actualizar título, descripción y badge de la portada (Hero)
+  async updateHeroData(newHeroData) {
+    const updated = { ...this.heroCache, ...newHeroData };
+    this.heroCache = updated;
+    this._saveLocalHeroOnly(updated);
+    this.notifyHeroListeners(this.heroCache);
+    return Promise.resolve(updated);
   }
 
   // Registrar pedido enviado por el usuario

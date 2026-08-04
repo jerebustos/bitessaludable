@@ -102,7 +102,7 @@ export default function App() {
       />
       
       <main style={{ flex: 1 }}>
-        <Hero />
+        <Hero isAdminLoggedIn={isAdminLoggedIn} />
         <ProductGallery 
           onAddToCart={handleAddToCart} 
           isAdminLoggedIn={isAdminLoggedIn}
