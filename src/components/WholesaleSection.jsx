@@ -2,7 +2,7 @@ import React from 'react';
 import { PackageCheck, ShoppingBag, Sparkles, Send, CheckCircle2, ShieldCheck, Truck, Award } from 'lucide-react';
 
 export default function WholesaleSection() {
-  const whatsappUrl = `https://wa.me/5492954556820?text=${encodeURIComponent('Hola! Me interesa solicitar información y catálogo de precios para pedidos al por mayor de bitessaludable.')}`;
+  const whatsappUrl = `https://wa.me/5492954395446?text=${encodeURIComponent('Hola! Me interesa solicitar información y catálogo de precios para pedidos al por mayor de bitessaludable.')}`;
 
   return (
     <section id="mayorista" style={{ padding: '5.5rem 0 6rem 0', background: 'linear-gradient(180deg, var(--bg-cream) 0%, #F4EBE1 100%)', position: 'relative' }}>
@@ -149,7 +149,7 @@ export default function WholesaleSection() {
                   ¿Querés ofrecer bitessaludable en tu comercio?
                 </h3>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
-                  Escribinos directamente a nuestro WhatsApp oficial para recibir nuestro catálogo mayorista.
+                  Escribinos a nuestro WhatsApp mayorista (<strong style={{ color: 'var(--color-primary-dark)' }}>+54 9 2954 395446</strong>) para recibir el catálogo y lista de precios.
                 </p>
               </div>
 
