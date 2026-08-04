@@ -4,6 +4,7 @@ import Hero from './components/Hero';
 import ProductGallery from './components/ProductGallery';
 import AboutUs from './components/AboutUs';
 import Founders from './components/Founders';
+import WholesaleSection from './components/WholesaleSection';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
 import AdminLoginModal from './components/AdminLoginModal';
@@ -113,6 +114,7 @@ export default function App() {
         />
         <AboutUs />
         <Founders isAdminLoggedIn={isAdminLoggedIn} />
+        <WholesaleSection />
       </main>
 
       <Footer />

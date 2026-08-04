@@ -86,6 +86,7 @@ export default function Footer() {
               <li><a href="#productos" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>Productos Estrella</a></li>
               <li><a href="#historia" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>Nuestra Historia</a></li>
               <li><a href="#creadoras" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>Las Creadoras</a></li>
+              <li><a href="#mayorista" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>Ventas Mayoristas</a></li>
             </ul>
           </div>
 

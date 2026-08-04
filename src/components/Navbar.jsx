@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { ShoppingBag, Menu, X, Leaf, Shield, Lock, Home, Utensils, BookOpen, Users, ChevronRight, MapPin, Sparkles } from 'lucide-react';
+import { ShoppingBag, Menu, X, Leaf, Shield, Lock, Home, Utensils, BookOpen, Users, ChevronRight, MapPin, Sparkles, PackageCheck } from 'lucide-react';
 
 export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenAdminLogin, onOpenAdminPanel }) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -30,7 +30,8 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
     { label: 'Inicio', href: '#hero', icon: Home },
     { label: 'Productos', href: '#productos', icon: Utensils },
     { label: 'Nuestra Historia', href: '#historia', icon: BookOpen },
-    { label: 'Las Creadoras', href: '#creadoras', icon: Users }
+    { label: 'Las Creadoras', href: '#creadoras', icon: Users },
+    { label: 'Ventas Mayoristas', href: '#mayorista', icon: PackageCheck }
   ];
 
   return (
@@ -60,6 +61,7 @@ export default function Navbar({ cartCount, onOpenCart, isAdminLoggedIn, onOpenA
             <a href="#productos" className="nav-link">Productos</a>
             <a href="#historia" className="nav-link">Nuestra Historia</a>
             <a href="#creadoras" className="nav-link">Las Creadoras</a>
+            <a href="#mayorista" className="nav-link">Ventas Mayoristas</a>
           </nav>
 
           {/* Action Controls */}
