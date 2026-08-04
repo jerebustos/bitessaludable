@@ -99,10 +99,13 @@ class StitchService {
     this.cloudActive = true;
     this.cloudEndpoint = STITCH_CONFIG.cloudEndpoint || '/api/products';
     this.listeners = [];
+    this.foundersListeners = [];
     this.STORAGE_KEY = 'bitessaludable_products_v3';
+    this.FOUNDERS_STORAGE_KEY = 'bitessaludable_founders_v1';
     
     // Cache en memoria inicializado desde localStorage o iniciales
     this.productsCache = this._getLocalProducts();
+    this.foundersCache = this._getLocalFounders();
 
     // Sincronizar automáticamente con la nube al iniciar
     this.syncWithCloud();
@@ -124,30 +127,58 @@ class StitchService {
         });
       }
 
-      if (!response.ok) return;
+      if (response.ok) {
+        const data = await response.json();
+        let cloudProducts = null;
 
-      const data = await response.json();
-      let cloudProducts = null;
+        if (Array.isArray(data)) {
+          cloudProducts = data;
+        } else if (data && Array.isArray(data.products)) {
+          cloudProducts = data.products;
+        }
 
-      if (Array.isArray(data)) {
-        cloudProducts = data;
-      } else if (data && Array.isArray(data.products)) {
-        cloudProducts = data.products;
-      }
-
-      if (cloudProducts && cloudProducts.length > 0) {
-        // Combinar datos remotos con estructura limpia
-        const merged = this._cleanAndMergeProducts(cloudProducts);
-        this.productsCache = merged;
-        this._saveLocalProductsOnly(merged);
-        this.notifyListeners(this.productsCache);
-        console.log('☁️ Sincronización exitosa con la nube Cloudflare KV. Productos cargados:', merged.length);
-      } else if (this.productsCache && this.productsCache.length > 0) {
-        // Si la nube está vacía pero tenemos productos locales, subirlos a la nube
-        await this._postProductsToCloud(this.productsCache);
+        if (cloudProducts && cloudProducts.length > 0) {
+          // Combinar datos remotos con estructura limpia
+          const merged = this._cleanAndMergeProducts(cloudProducts);
+          this.productsCache = merged;
+          this._saveLocalProductsOnly(merged);
+          this.notifyListeners(this.productsCache);
+          console.log('☁️ Sincronización exitosa con la nube Cloudflare KV. Productos cargados:', merged.length);
+        } else if (this.productsCache && this.productsCache.length > 0) {
+          // Si la nube está vacía pero tenemos productos locales, subirlos a la nube
+          await this._postProductsToCloud(this.productsCache);
+        }
       }
     } catch (err) {
-      console.warn('Sincronización con la nube (offline/local fallback):', err.message);
+      console.warn('Sincronización de productos con la nube (offline/local fallback):', err.message);
+    }
+
+    // Sincronización de creadoras con la nube
+    try {
+      let fResponse = await fetch('/api/founders', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!fResponse.ok) {
+        fResponse = await fetch('https://bitessaludable.com.ar/api/founders', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+      }
+      if (fResponse.ok) {
+        const fData = await fResponse.json();
+        const cloudFounders = Array.isArray(fData) ? fData : (fData && Array.isArray(fData.founders) ? fData.founders : null);
+        if (cloudFounders && cloudFounders.length > 0) {
+          this.foundersCache = cloudFounders;
+          this._saveLocalFoundersOnly(cloudFounders);
+          this.notifyFoundersListeners(this.foundersCache);
+          console.log('☁️ Sincronización exitosa con la nube Cloudflare KV. Creadoras cargadas:', cloudFounders.length);
+        } else if (this.foundersCache && this.foundersCache.length > 0) {
+          await this._postFoundersToCloud(this.foundersCache);
+        }
+      }
+    } catch (err) {
+      console.warn('Sincronización de creadoras con la nube (offline/local fallback):', err.message);
     }
   }
 
@@ -363,9 +394,122 @@ class StitchService {
     return cleaned;
   }
 
+  _getLocalFounders() {
+    try {
+      let stored = localStorage.getItem(this.FOUNDERS_STORAGE_KEY) || localStorage.getItem('bitessaludable_founders');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Error al leer creadoras de localStorage:', e);
+    }
+    return INITIAL_FOUNDERS;
+  }
+
+  _saveLocalFoundersOnly(founders) {
+    try {
+      localStorage.setItem(this.FOUNDERS_STORAGE_KEY, JSON.stringify(founders));
+      localStorage.setItem('bitessaludable_founders', JSON.stringify(founders));
+    } catch (e) {
+      console.error('Error al guardar creadoras en localStorage:', e);
+    }
+  }
+
+  async _postFoundersToCloud(founders) {
+    try {
+      let response = await fetch('/api/founders', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Admin-Token': 'bitessaludable-admin-token-2026'
+        },
+        body: JSON.stringify({ founders })
+      });
+
+      if (!response.ok) {
+        response = await fetch('https://bitessaludable.com.ar/api/founders', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Admin-Token': 'bitessaludable-admin-token-2026'
+          },
+          body: JSON.stringify({ founders })
+        });
+      }
+
+      if (response.ok) {
+        console.log('☁️ Creadoras guardadas en Cloudflare KV.');
+      }
+    } catch (err) {
+      console.warn('No se pudo guardar creadoras en la nube:', err.message);
+    }
+  }
+
+  async _saveAllFounders(founders) {
+    this.foundersCache = [...founders];
+    this._saveLocalFoundersOnly(founders);
+    this.notifyFoundersListeners(this.foundersCache);
+    await this._postFoundersToCloud(founders);
+  }
+
+  subscribeFounders(listener) {
+    this.foundersListeners.push(listener);
+    return () => {
+      this.foundersListeners = this.foundersListeners.filter(l => l !== listener);
+    };
+  }
+
+  notifyFoundersListeners(founders) {
+    this.foundersListeners.forEach(listener => listener(founders));
+  }
+
   // Obtener información de las fundadoras
   async getFounders() {
-    return Promise.resolve(INITIAL_FOUNDERS);
+    if (!this.foundersCache || this.foundersCache.length === 0) {
+      this.foundersCache = this._getLocalFounders();
+    }
+    return Promise.resolve([...this.foundersCache]);
+  }
+
+  // Actualizar foto de las creadoras
+  async updateFounderPhoto(founderId, newPhotoUrl) {
+    const currentFounders = await this.getFounders();
+    const targetId = founderId || (currentFounders[0] && currentFounders[0].id) || 'founder-1';
+    
+    let found = false;
+    const updated = currentFounders.map(f => {
+      if (f.id === targetId) {
+        found = true;
+        return { ...f, photo: newPhotoUrl };
+      }
+      return f;
+    });
+
+    if (!found && currentFounders.length > 0) {
+      updated[0] = { ...updated[0], photo: newPhotoUrl };
+    }
+
+    await this._saveAllFounders(updated);
+    return updated.find(f => f.id === targetId) || updated[0];
+  }
+
+  // Actualizar datos de las creadoras
+  async updateFounder(founderId, updatedFields) {
+    const currentFounders = await this.getFounders();
+    const targetId = founderId || (currentFounders[0] && currentFounders[0].id) || 'founder-1';
+
+    const updated = currentFounders.map(f => {
+      if (f.id === targetId) {
+        return { ...f, ...updatedFields };
+      }
+      return f;
+    });
+
+    await this._saveAllFounders(updated);
+    return updated.find(f => f.id === targetId);
   }
 
   // Registrar pedido enviado por el usuario

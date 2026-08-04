@@ -66,11 +66,50 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
   // Quick price edits state object { [productId]: price }
   const [priceEdits, setPriceEdits] = useState({});
 
+  // Founders state
+  const [founders, setFounders] = useState([]);
+  const [founderPhotoUrl, setFounderPhotoUrl] = useState('');
+
   useEffect(() => {
     if (isOpen) {
       loadProducts();
+      loadFounders();
     }
   }, [isOpen, initialEditProductId]);
+
+  const loadFounders = async () => {
+    const data = await stitchService.getFounders();
+    setFounders(data);
+    if (data && data.length > 0) {
+      setFounderPhotoUrl(data[0].photo || '');
+    }
+  };
+
+  const handleFounderFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const compressed = await compressImageFile(file, 1000, 0.82);
+      if (compressed) {
+        setFounderPhotoUrl(compressed);
+        showToast('¡Foto cargada y optimizada!');
+      }
+    }
+  };
+
+  const handleSaveFounderPhoto = async () => {
+    if (!founderPhotoUrl) {
+      showToast('Por favor selecciona o ingresa una URL de foto válida.', 'error');
+      return;
+    }
+    try {
+      const targetId = (founders && founders[0] && founders[0].id) || 'founder-1';
+      await stitchService.updateFounderPhoto(targetId, founderPhotoUrl);
+      showToast('¡Foto de Las Creadoras actualizada exitosamente!');
+      await loadFounders();
+    } catch (err) {
+      showToast('Error al actualizar la foto de las creadoras.', 'error');
+    }
+  };
 
   const loadProducts = async () => {
     setLoading(true);
@@ -511,6 +550,25 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
             }}
           >
             <PlusCircle size={18} /> Agregar Nuevo Producto
+          </button>
+
+          <button
+            onClick={() => setActiveTab('creadoras')}
+            style={{
+              padding: '1rem 1.25rem',
+              fontWeight: '700',
+              fontSize: '0.9rem',
+              border: 'none',
+              borderBottom: activeTab === 'creadoras' ? '3px solid var(--color-primary)' : '3px solid transparent',
+              background: 'none',
+              color: activeTab === 'creadoras' ? 'var(--color-primary)' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <ImageIcon size={18} /> Las Creadoras
           </button>
 
           <button
@@ -1378,6 +1436,96 @@ export default function AdminPanelModal({ isOpen, onClose, onLogout, initialEdit
                 <Save size={18} /> Guardar Configuración de Seguridad Cifrada
               </button>
             </form>
+          )}
+
+          {/* TAB 4: LAS CREADORAS - MODIFICAR FOTO */}
+          {activeTab === 'creadoras' && (
+            <div style={{ maxWidth: '680px', margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(30, 130, 134, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
+                  <ImageIcon size={28} color="var(--color-primary)" />
+                </div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-dark)' }}>
+                  Modificar Foto de Las Creadoras
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.3rem', lineHeight: 1.5 }}>
+                  Cambia la fotografía oficial que aparece en la sección "Las Creadoras" del sitio web.
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div>
+                    <label style={labelStyle}>1. Subir foto desde tu ordenador / dispositivo</label>
+                    <label 
+                      className="btn btn-secondary"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer',
+                        padding: '0.8rem 1rem',
+                        background: '#ffffff',
+                        border: '2px dashed var(--color-primary-light)',
+                        borderRadius: 'var(--radius-md)',
+                        fontWeight: '700',
+                        color: 'var(--color-primary-dark)'
+                      }}
+                    >
+                      <Upload size={18} />
+                      <span>Elegir archivo de foto...</span>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleFounderFileChange}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>2. O pegar enlace de imagen (URL)</label>
+                    <input 
+                      type="url"
+                      placeholder="https://ejemplo.com/foto.jpg"
+                      value={founderPhotoUrl}
+                      onChange={(e) => setFounderPhotoUrl(e.target.value)}
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSaveFounderPhoto}
+                    className="btn btn-primary"
+                    style={{ padding: '0.8rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: '700', marginTop: '0.5rem' }}
+                  >
+                    <Save size={18} /> Guardar Foto de Las Creadoras
+                  </button>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Vista Previa de la Foto:</label>
+                  <div style={{
+                    borderRadius: 'var(--radius-md)',
+                    overflow: 'hidden',
+                    border: '2px solid var(--border-light)',
+                    height: '240px',
+                    background: '#f8fafc',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}>
+                    {founderPhotoUrl ? (
+                      <img src={founderPhotoUrl} alt="Vista previa creadoras" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Sin foto seleccionada</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
         </div>

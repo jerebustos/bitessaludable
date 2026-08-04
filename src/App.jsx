@@ -112,7 +112,7 @@ export default function App() {
           onEditProduct={handleOpenEditProduct}
         />
         <AboutUs />
-        <Founders />
+        <Founders isAdminLoggedIn={isAdminLoggedIn} />
       </main>
 
       <Footer />

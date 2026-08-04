@@ -107,6 +107,75 @@ export default {
       }
     }
 
+    // API Routes para gestión persistente de creadoras/fundadoras en Cloudflare KV
+    if (url.pathname === '/api/founders') {
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
+        'Content-Type': 'application/json; charset=utf-8',
+        'X-Frame-Options': 'DENY',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
+      };
+
+      if (request.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: corsHeaders });
+      }
+
+      if (request.method === 'GET') {
+        try {
+          let foundersJson = null;
+          if (env.PRODUCTS_KV) {
+            foundersJson = await env.PRODUCTS_KV.get('founders_catalog');
+          }
+          if (!foundersJson) {
+            return new Response(JSON.stringify({ success: true, founders: null }), {
+              status: 200,
+              headers: corsHeaders
+            });
+          }
+          return new Response(foundersJson, { status: 200, headers: corsHeaders });
+        } catch (error) {
+          console.error('Error al obtener creadoras de Cloudflare KV:', error);
+          return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      if (request.method === 'POST') {
+        try {
+          const adminToken = request.headers.get('X-Admin-Token');
+          const expectedToken = env.ADMIN_SECRET_TOKEN || 'bitessaludable-admin-token-2026';
+          if (adminToken !== expectedToken) {
+            return new Response(JSON.stringify({ error: 'Acceso no autorizado. Token de administración inválido.' }), {
+              status: 401,
+              headers: corsHeaders
+            });
+          }
+
+          const body = await request.json();
+          if (!body || !Array.isArray(body.founders)) {
+            return new Response(JSON.stringify({ error: 'Formato de creadoras inválido. Debe ser una lista.' }), {
+              status: 400,
+              headers: corsHeaders
+            });
+          }
+
+          if (env.PRODUCTS_KV) {
+            await env.PRODUCTS_KV.put('founders_catalog', JSON.stringify(body.founders));
+          }
+
+          return new Response(JSON.stringify({ success: true, count: body.founders.length, timestamp: new Date().toISOString() }), {
+            status: 200,
+            headers: corsHeaders
+          });
+        } catch (error) {
+          console.error('Error al guardar creadoras en Cloudflare KV:', error);
+          return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+    }
+
     // Para todas las demás peticiones, servir los recursos estáticos web generados en Vite con encabezados de seguridad y caché
     if (env.ASSETS) {
       const assetResponse = await env.ASSETS.fetch(request);
