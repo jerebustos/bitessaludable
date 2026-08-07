@@ -9,6 +9,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
   const [honeypot, setHoneypot] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(null);
+  const [whatsappUrlState, setWhatsappUrlState] = useState('');
   const [securityError, setSecurityError] = useState('');
 
   if (!isOpen) return null;
@@ -68,26 +69,31 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
       // Registrar en Stitch Database
       const res = await stitchService.submitOrder(orderData);
 
-      // Formatear mensaje para WhatsApp limpio y 100% compatible sin emojis incompatibles
-      let message = `*NUEVO PEDIDO - BITESSALUDABLE*\n\n`;
-      message += `*Orden ID:* ${res.orderId}\n`;
+      // Formatear mensaje para WhatsApp 100% compatible sin emojis ni caracteres incompatibles
+      let message = `*NUEVO PEDIDO - BITESSALUDABLE*\n`;
+      message += `--------------------------------------\n`;
+      message += `*Codigo de Pedido:* #${res.orderId}\n`;
       message += `*Cliente:* ${cleanName}\n`;
-      if (cleanAddress) message += `*Direccion de Entrega:* ${cleanAddress}\n`;
+      if (cleanAddress) message += `*Direccion:* ${cleanAddress}\n`;
       if (cleanNotes) message += `*Aclaraciones:* ${cleanNotes}\n`;
-      message += `\n*DETALLE DEL PEDIDO:*\n`;
+      message += `--------------------------------------\n\n`;
+      message += `*DETALLE DEL PEDIDO:*\n`;
 
       cartItems.forEach(item => {
         message += `- *${item.quantity}x* ${item.title} ($${(item.price * item.quantity).toLocaleString('es-AR')} ARS)\n`;
       });
 
-      message += `\n*TOTAL A PAGAR:* *$${totalAmount.toLocaleString('es-AR')} ARS*\n\n`;
+      message += `\n--------------------------------------\n`;
+      message += `*TOTAL A PAGAR:* *$${totalAmount.toLocaleString('es-AR')} ARS*\n`;
+      message += `--------------------------------------\n\n`;
       message += `Muchas gracias por elegir bitessaludable.\n`;
-      message += `Quedo a la espera de la confirmacion para coordinar el pago y la entrega.`;
+      message += `Quedo a la espera de tu confirmacion para coordinar el pago y la entrega.`;
 
       const encodedMessage = encodeURIComponent(message);
       // Número oficial de WhatsApp: +54 9 2954 556820
       const whatsappUrl = `https://wa.me/5492954556820?text=${encodedMessage}`;
 
+      setWhatsappUrlState(whatsappUrl);
       setIsSubmitting(false);
       setOrderComplete(res.orderId);
 
@@ -97,6 +103,16 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
       setIsSubmitting(false);
       setSecurityError('Ocurrió un error al procesar el pedido. Intenta nuevamente.');
     }
+  };
+
+  const handleReset = () => {
+    setOrderComplete(null);
+    setCustomerName('');
+    setAddress('');
+    setNotes('');
+    setWhatsappUrlState('');
+    onClearCart();
+    onClose();
   };
 
   return (
@@ -153,22 +169,103 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
 
         {/* Order Success State */}
         {orderComplete ? (
-          <div style={{ padding: '3rem 2rem', textAlign: 'center', margin: 'auto' }}>
-            <CheckCircle2 size={60} color="var(--color-primary)" style={{ margin: '0 auto 1.5rem' }} />
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>¡Pedido Enviado!</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-              Tu orden <strong style={{ color: 'var(--color-primary-dark)' }}>{orderComplete}</strong> se ha registrado y redirigido a WhatsApp (<strong style={{ color: 'var(--color-primary)' }}>+54 9 2954 556820</strong>) para coordinar la entrega.
+          <div style={{ padding: '2.5rem 1.5rem', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+            <div style={{
+              width: '74px',
+              height: '74px',
+              borderRadius: '50%',
+              background: 'rgba(30, 130, 134, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem',
+              animation: 'pulseGlow 2s infinite'
+            }}>
+              <CheckCircle2 size={40} color="var(--color-primary)" />
+            </div>
+
+            <h3 style={{ fontSize: '1.4rem', fontWeight: '700', color: 'var(--text-dark)', textAlign: 'center', marginBottom: '0.5rem' }}>
+              ¡Pedido Enviado!
+            </h3>
+            
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', marginBottom: '1.5rem', lineHeight: 1.4 }}>
+              Redirigiendo a WhatsApp para coordinar el pago y la entrega de tus platos.
             </p>
-            <button 
-              onClick={() => {
-                setOrderComplete(null);
-                onClearCart();
-                onClose();
-              }}
-              className="btn btn-primary"
-            >
-              Realizar Otro Pedido
-            </button>
+
+            {/* Resumen del pedido elegante */}
+            <div style={{
+              background: 'var(--bg-cream)',
+              border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-md)',
+              padding: '1.25rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.65rem', borderBottom: '1px dashed var(--border-light)', paddingBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Pedido:</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--color-primary-dark)' }}>#{orderComplete}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.65rem', borderBottom: '1px dashed var(--border-light)', paddingBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Cliente:</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-dark)' }}>{customerName || 'Cliente'}</span>
+              </div>
+              {address && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.65rem', borderBottom: '1px dashed var(--border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Dirección:</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-dark)', textAlign: 'right', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{address}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-dark)' }}>Total:</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--color-secondary)' }}>${totalAmount.toLocaleString('es-AR')} ARS</span>
+              </div>
+            </div>
+
+            {/* Próximos pasos */}
+            <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: '700', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>¿Qué pasa ahora?</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--color-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '700', flexShrink: 0, marginTop: '2px' }}>1</div>
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Enviás el mensaje listo en tu WhatsApp para confirmar la compra.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--color-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '700', flexShrink: 0, marginTop: '2px' }}>2</div>
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Te enviamos los datos para transferencia / coordinamos pago en efectivo.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--color-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '700', flexShrink: 0, marginTop: '2px' }}>3</div>
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Preparamos tu pedido y enviamos el pedido a tu puerta.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Acciones */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: 'auto' }}>
+              {whatsappUrlState && (
+                <a 
+                  href={whatsappUrlState} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="btn btn-secondary" 
+                  style={{ width: '100%', padding: '0.8rem', fontSize: '0.9rem', display: 'inline-flex', justifyContent: 'center' }}
+                >
+                  Reabrir WhatsApp
+                </a>
+              )}
+              <button 
+                onClick={handleReset}
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '0.85rem' }}
+              >
+                Realizar Otro Pedido
+              </button>
+            </div>
           </div>
         ) : (
           <>

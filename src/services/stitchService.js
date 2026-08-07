@@ -578,7 +578,7 @@ class StitchService {
     console.log('📦 Registrando pedido en Stitch Cloud Database...', orderData);
     return Promise.resolve({
       success: true,
-      orderId: 'STITCH-ORD-' + Math.floor(100000 + Math.random() * 900000),
+      orderId: 'BITES-' + Math.floor(10000 + Math.random() * 90000),
       timestamp: new Date().toISOString()
     });
   }
